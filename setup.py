@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 version = {}
@@ -12,7 +12,7 @@ setup(
     name='axon-conabio',
     version=version['__version__'],
     description='Conjunto de herramientas para crear, entrenar y evaluar modelos.',
-    author='Santiago Martinez, Everardo Robredo',
+    author='Santiago Martínez, Everardo Robredo',
     long_description=long_description,
     long_description_content_type="text/markdown",
     author_email='santiago.mbal@gmail.com',
