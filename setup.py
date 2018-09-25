@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
@@ -11,7 +10,7 @@ with open("./axon_conabio/version.py") as fp:
 
 setup(
     name='axon-conabio',
-    version=version,
+    version=version['__version__'],
     description='Conjunto de herramientas para crear, entrenar y evaluar modelos.',
     author='Santiago Martinez, Everardo Robredo',
     long_description=long_description,
