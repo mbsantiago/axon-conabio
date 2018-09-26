@@ -6,4 +6,11 @@ dist/
 **/__pycache__/
 
 *.ipynb
-tensorboard/
+.ipynb_checkpoints/
+
+pruebas/
+
+.pytest_cache
+
+.coverage
+htmlcov/
