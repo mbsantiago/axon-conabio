@@ -1,14 +1,17 @@
 import unittest
 import sys
+import os
 
 import tensorflow as tf
 import numpy as np
 
-sys.path.append('../')
+CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(os.path.join(CURRENT_PATH, '../'))
+
 from axon_conabio.models.tf_model import TFModel
 
 
-class TestModel1(TFModel):
+class Model1(TFModel):
     def _build(self, inputs):
         with tf.variable_scope('layer_1'):
             matrix = tf.get_variable(
@@ -33,7 +36,7 @@ class TestTFModelClass(unittest.TestCase):
         input1 = tf.placeholder(tf.float32, shape=[2, 1])
         input2 = tf.placeholder(tf.float32, shape=[2, 1])
 
-        model1 = TestModel1()
+        model1 = Model1()
 
         output1_tensor = model1.predict(input1)
         output2_tensor = model1.predict(input2)
@@ -56,7 +59,7 @@ class TestTFModelClass(unittest.TestCase):
 
         with tf.Graph().as_default():
             input1 = tf.placeholder(tf.float32, shape=[2, 1])
-            model1 = TestModel1()
+            model1 = Model1()
             output1_tensor = model1.predict(input1)
 
             sess = tf.Session()
@@ -67,7 +70,7 @@ class TestTFModelClass(unittest.TestCase):
 
         with tf.Graph().as_default():
             input2 = tf.placeholder(tf.float32, shape=[2, 1])
-            model2 = TestModel1()
+            model2 = Model1()
             output2_tensor = model2.predict(input2)
 
             sess = tf.Session()
@@ -85,8 +88,8 @@ class TestTFModelClass(unittest.TestCase):
 
         with tf.Graph().as_default():
             input1 = tf.placeholder(tf.float32, shape=[2, 1])
-            model1 = TestModel1()
-            model2 = TestModel1()
+            model1 = Model1()
+            model2 = Model1()
             output1_tensor = model1.predict(input1)
             output2_tensor = model2.predict(input1)
 
@@ -107,8 +110,8 @@ class TestTFModelClass(unittest.TestCase):
 
         with tf.Graph().as_default():
             input1 = tf.placeholder(tf.float32, shape=[2, 1])
-            model1 = TestModel1()
-            model2 = TestModel1()
+            model1 = Model1()
+            model2 = Model1()
             output1_tensor = model1.predict(input1)
             output2_tensor = model2.predict(input1)
 
