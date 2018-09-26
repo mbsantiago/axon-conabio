@@ -30,8 +30,10 @@ class TFModel(Model):
                 # Add to saveable variables
                 self.variables = {'global_step': self.global_step}
 
-    def set_trainable_variables(self, variables):
-        if not hasattr(self, 'trainable_variables'):
+        self.variables_are_set = False
+
+    def add_variables(self, variables):
+        if not self.variables_are_set:
             def parse_name(variable):
                 name = variable.name
                 name = '/'.join(name.split('/')[2:])
@@ -39,13 +41,20 @@ class TFModel(Model):
                 return name
 
             # Remove id from variable name
-            self.trainable_variables = {
+            variable_dict = {
                 parse_name(variable): variable
                 for variable in variables
             }
 
+            print(variable_dict)
+
             # Add to saveable variables
-            self.variables.update(self.trainable_variables)
+            self.variables.update(variable_dict)
+            self.variables_are_set = True
+
+    @abstractmethod
+    def _predict(self, inputs):
+        pass
 
     def predict(self, inputs):
         with self.graph.as_default():
@@ -53,24 +62,18 @@ class TFModel(Model):
                     'variables/{id}'.format(id=self.id),
                     reuse=tf.AUTO_REUSE,
                     auxiliary_name_scope=False) as scope:
-                results = self._build(inputs)
+                results = self._predict(inputs)
 
-                trainable_variables = scope.trainable_variables()
-                self.set_trainable_variables(trainable_variables)
+                variables = (
+                    scope.trainable_variables() +
+                    scope.local_variables() +
+                    scope.global_variables()
+                )
+
+                print('variables', variables)
+                self.add_variables(variables)
 
         return results
-
-    @abstractmethod
-    def _predict(self, inputs):
-        pass
-
-    def predict_multigpu(self, inputs, gpus=2):
-        # TODO
-        pass
-
-    @abstractmethod
-    def loss(self, inputs):
-        pass
 
     def save(self, sess, path, **kwargs):
         if not hasattr(self, 'saver'):

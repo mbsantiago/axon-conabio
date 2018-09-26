@@ -12,7 +12,7 @@ from axon_conabio.models.tf_model import TFModel
 
 
 class Model1(TFModel):
-    def _build(self, inputs):
+    def _predict(self, inputs):
         with tf.variable_scope('layer_1'):
             matrix = tf.get_variable(
                 'matrix1',
