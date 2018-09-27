@@ -1,4 +1,5 @@
 import os
+import six
 import json
 import yaml
 
@@ -98,10 +99,27 @@ TRAINER_CONFIG_FIELDS = {
         }
     },
     'summaries': {
+        'validate': True,
+        'tensorboard_summaries': True,
         'variable_summaries': False,
         'gradient_summaries': True,
-        'train_frequency': 50,
-        'validation_frequency': 200,
+        'custom_summaries': True,
+        'save_graph': True,
+        'train_summaries_frequency': 50,
+        'validation_summaries_frequency': 200,
+        'custom_summaries_dir': 'custom_summaries',
+        'summaries_dir': 'summaries',
+    },
+    'logging': {
+        'logging': True,
+        'log_to_file': False,
+        'log_path': 'training.log',
+        'verbosity': 3,
+    },
+    'checkpoints': {
+        'checkpoints_frequency': 200,
+        'checkpoints_dir': 'checkpoints',
+        'numpy_checkpoints': False,
     },
     'regularization': {
         'l1_loss': 0.0,
@@ -110,10 +128,13 @@ TRAINER_CONFIG_FIELDS = {
     },
     'architecture': {
         'distributed': False,
-        'num_gpus': 2,
+        'distributed_config': 'cluster_spec.py',
+        'num_gpus': 1,
     },
-    'batch_size': 100,
-    'epochs': 10000,
+    'feed': {
+        'batch_size': 100,
+        'epochs': 10000,
+    }
 }
 
 
@@ -179,94 +200,36 @@ class TrainerConfig(object):
                 arguments[key] = user_confs[key]
         setattr(self, 'optimizer_arguments', arguments)
 
-        # Summary options
-        user_options = config.get('summaries', {})
-        default_conf = TRAINER_CONFIG_FIELDS['summaries']
+        # For other configurations
+        for key, value in six.iteritems(TRAINER_CONFIG_FIELDS):
+            if key == 'optimizer':
+                continue
 
-        variable_summaries = user_options.get(
-            'variable_summaries',
-            default_conf['variable_summaries'])
-        setattr(self, 'variable_summaries', variable_summaries)
+            default_config = TRAINER_CONFIG_FIELDS[key]
+            user_config = config.get(key, {})
 
-        gradient_summaries = user_options.get(
-            'gradient_summaries',
-            default_conf['gradient_summaries'])
-        setattr(self, 'gradient_summaries', gradient_summaries)
-
-        summaries_every = user_options.get(
-            'train_frequency',
-            default_conf['train_frequency'])
-        setattr(self, 'train_summaries_frequency', summaries_every)
-
-        summaries_every = user_options.get(
-            'validation_frequency',
-            default_conf['validation_frequency'])
-        setattr(self, 'validation_summaries_frequency', summaries_every)
-
-        # Regularization options
-        user_options = config.get('regularization', {})
-        default_conf = TRAINER_CONFIG_FIELDS['regularization']
-
-        keep_prob = user_options.get(
-            'keep_prob',
-            default_conf['keep_prob'])
-        setattr(self, 'keep_prob', keep_prob)
-
-        l1_loss = user_options.get(
-            'l1_loss',
-            default_conf['l1_loss'])
-        setattr(self, 'l1_loss', l1_loss)
-
-        l2_loss = user_options.get(
-            'l2_loss',
-            default_conf['l2_loss'])
-        setattr(self, 'l2_loss', l2_loss)
-
-        # Architecture options
-        user_options = config.get('architecture', {})
-        default_conf = TRAINER_CONFIG_FIELDS['architecture']
-
-        num_gpus = user_options.get(
-            'num_gpus',
-            default_conf['num_gpus'])
-        setattr(self, 'num_gpus', num_gpus)
-
-        distributed = user_options.get(
-            'distributed',
-            default_conf['distributed'])
-        setattr(self, 'distributed', distributed)
-
-        # Feed options
-        num_epochs = config.get(
-            'epochs',
-            TRAINER_CONFIG_FIELDS['epochs'])
-        setattr(self, 'epochs', num_epochs)
-
-        batch_size = config.get(
-            'batch_size',
-            TRAINER_CONFIG_FIELDS['batch_size'])
-        setattr(self, 'batch_size', batch_size)
+            for subkey, subvalue in six.iteritems(default_config):
+                attr_value = user_config.get(subkey, subvalue)
+                setattr(self, subkey, attr_value)
 
     def __str__(self):
         msg = 'Train configuration:' + '\n'
-        msg += '  - Optimizer:' + '\n'
-        msg += '    name : ' + self.optimizer + '\n'
-        msg += '    arguments : ' + str(self.optimizer_arguments) + '\n'
-        msg += '  - Regularization:' + '\n'
-        msg += '    l1 : ' + str(self.l1_loss) + '\n'
-        msg += '    l2 : ' + str(self.l2_loss) + '\n'
-        msg += '    keep_prob : ' + str(self.keep_prob) + '\n'
-        msg += '  - Summaries:' + '\n'
-        msg += '    variable_summaries : ' + str(self.variable_summaries) + '\n'
-        msg += '    gradient_summaries : ' + str(self.gradient_summaries) + '\n'
-        msg += '    train_summaries_freq : ' + str(self.train_summaries_frequency) + '\n'
-        msg += '    valid_summaries_freq : ' + str(self.validation_summaries_frequency) + '\n'
-        msg += '  - Architecture:' + '\n'
-        msg += '    distributed : ' + str(self.distributed) + '\n'
-        msg += '    num_gpus : ' + str(self.num_gpus) + '\n'
-        msg += '  - Feed:' + '\n'
-        msg += '    batch_size : ' + str(self.batch_size) + '\n'
-        msg += '    epochs : ' + str(self.epochs)
+        msg += '  - optimizer:\n'
+        msg += '      name : {value}\n'.format(value=self.optimizer)
+        for key, value in six.iteritems(self.optimizer_arguments):
+            msg += '      {key} : {value}\n'.format(key=key, value=value)
+
+        for key, value in six.iteritems(TRAINER_CONFIG_FIELDS):
+            if key == 'optimizer':
+                continue
+
+            msg += '  - {theme}:\n'.format(theme=key)
+            for subkey in value:
+                conf_value = getattr(self, subkey)
+                new_msg = '      {key} : {value}\n'
+                new_msg = new_msg.format(key=subkey, value=conf_value)
+                msg += new_msg
+
         return msg
 
     def __repr__(self):

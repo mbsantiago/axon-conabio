@@ -49,6 +49,7 @@ class TFModel(Model, ABC):
                         auxiliary_name_scope=False):
                     self.global_step = tf.get_variable(
                         'global_step',
+                        dtype=tf.int64,
                         shape=[],
                         initializer=tf.zeros_initializer,
                         trainable=False)
@@ -113,6 +114,22 @@ class TFModel(Model, ABC):
             self.saver = tf.train.Saver(self.variables)
 
         self.saver.restore(sess, path)
+
+    def get_variable_summaries(self, prefix=None):
+        summaries = []
+        if prefix is None:
+            prefix = ''
+        else:
+            prefix += '/'
+
+        for var_name in self.variables:
+            if var_name == 'global_step':
+                continue
+
+            variable = self.variables[var_name]
+            summaries.append(
+                tf.summary.histogram(prefix + var_name, variable))
+        return tf.summary.merge(summaries)
 
     def init_op(self):
         with self.graph.as_default():

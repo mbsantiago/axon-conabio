@@ -99,10 +99,16 @@ class Loss(ABC):
 
         return losses
 
-    def summary_op(self):
+    def summary_op(self, prefix=None):
         """Return merged summary operation for all summaries defined within."""
         with self.graph.as_default():
-            with tf.name_scope('summaries/{name}/'.format(name=self.name)):
+            if prefix is None:
+                scope_name = '{name}/'.format(name=self.name)
+            else:
+                scope_name = '{prefix}/{name}/'.format(
+                    name=self.name, prefix=prefix)
+
+            with tf.name_scope(scope_name):
                 summaries = []
 
                 for key in self.summaries:
