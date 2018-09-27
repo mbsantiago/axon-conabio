@@ -40,39 +40,54 @@ class TFTrainer(object):
         return True
 
     def _get_optimizer(self):
-        arguments = self.config.optimizer_arguments
-        factory = self.config.optimizer_factory
-        optimizer = factory(**arguments)
+        with tf.name_scope('optimizer'):
+            arguments = self.config.optimizer_arguments
+            factory = self.config.optimizer_factory
+            optimizer = factory(**arguments)
         return optimizer
 
     def _get_train_op(self, model, losses, reg_loss):
         with model.graph.as_default():
-            total_loss = tf.add_n(losses) / len(losses) + reg_loss
-            optimizer = self._get_optimizer()
-            train_op = optimizer.minimize(
-                total_loss,
-                global_step=model.global_step)
+            with tf.name_scope('training/'):
+                with tf.name_scope('total_loss'):
+                    total_loss = tf.add_n(losses) / len(losses) + reg_loss
+                optimizer = self._get_optimizer()
+                train_op = optimizer.minimize(
+                    total_loss,
+                    global_step=model.global_step)
             return train_op, total_loss
 
     def _get_train_op_multiple_gpu(self, model, losses, reg_loss):
         num_gpus = self.config.num_gpus
 
-        if num_gpus > 1:
+        if num_gpus == 1:
             return self._get_train_op(model, losses, reg_loss)
 
         assert len(losses) == num_gpus
 
         with model.graph.as_default():
-            optimizer = self._get_optimizer()
-            gradients_list = []
-            for i in range(num_gpus):
-                with tf.device('/device:GPU:{}'.format(i)):
-                    scope_name = 'trainining/tower_{}_gradients/'.format(i)
-                    with tf.name_scope(scope_name):
-                        gradients = optimizer.compute_gradients(losses[i])
-                        gradients_list.append(gradients)
+            with tf.name_scope('training/'):
+                optimizer = self._get_optimizer()
+                gradients_list = []
 
-        return gradients_list
+                for i in range(num_gpus):
+                    with tf.device('/device:GPU:{}'.format(i)):
+                        scope_name = 'tower_{}_gradients'.format(i)
+                        with tf.name_scope(scope_name):
+                            gradients = optimizer.compute_gradients(
+                                losses[i] / num_gpus)
+                            gradients_list += gradients
+
+                if reg_loss != 0:
+                    with tf.name_scope('regularization'):
+                        gradients_list += optimizer.compute_gradients(reg_loss)
+
+                train_op = optimizer.apply_gradients(gradients_list)
+
+                with tf.name_scope('total_loss'):
+                    total_loss = tf.add_n(losses) / num_gpus + reg_loss
+
+        return train_op, total_loss
 
     def train(self, model=None, loss=None, dataset=None):
         # Check if objects are elements of the corresponding classes
@@ -96,7 +111,7 @@ class TFTrainer(object):
             num_gpus=self.config.num_gpus)
         reg_loss = self._get_regularization_loss(model)
 
-        train_op, train_loss = self._get_train_op(
+        train_op, train_loss = self._get_train_op_multiple_gpus(
             model,
             losses,
             reg_loss)
