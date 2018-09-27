@@ -1,36 +1,60 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 import tensorflow as tf
-from uuid import uuid4
 
 from .basemodel import Model
 
 
-class TFModel(Model):
-    __metaclass__ = ABCMeta
+class TFModel(Model, ABC):
+    @property
+    @abstractmethod
+    def name(self):
+        return 'model'
 
     def __init__(self, graph=None):
         if graph is None:
             graph = tf.get_default_graph()
         self.graph = graph
 
-        self.id = str(uuid4())
+        # Count the number of times this model has appeared within the same
+        # graph.
+        if not hasattr(self.graph, 'model_counts'):
+            self.graph.model_counts = {self.name: 1}
+            self.submodel = False
+        else:
+            value = self.graph.model_counts.setdefault(self.name, 0)
+            self.graph.model_counts[self.name] = value + 1
+            self.submodel = True
+
+        # Avoid name collision
+        count = self.graph.model_counts[self.name]
+        if count > 1:
+            self.name = '{name}_{count}'.format(name=self.name, count=count)
+
+        # Store reference to models in graph
+        if not hasattr(self.graph, 'models'):
+            self.graph.models = {self.name: self}
+        else:
+            self.graph.models[self.name] = self
+
+        # Dictionary holding all created variables
+        self.variables = {}
+        self.variables_are_set = False
 
         # Make global step variable
-        with self.graph.as_default():
-            with tf.variable_scope(
-                    'variables/{id}'.format(id=self.id),
-                    reuse=tf.AUTO_REUSE,
-                    auxiliary_name_scope=False):
-                self.global_step = tf.get_variable(
-                    'global_step',
-                    shape=[1],
-                    initializer=tf.zeros_initializer,
-                    trainable=False)
+        if not self.submodel:
+            with self.graph.as_default():
+                with tf.variable_scope(
+                        'variables/{name}'.format(name=self.name),
+                        reuse=tf.AUTO_REUSE,
+                        auxiliary_name_scope=False):
+                    self.global_step = tf.get_variable(
+                        'global_step',
+                        shape=[],
+                        initializer=tf.zeros_initializer,
+                        trainable=False)
 
-                # Add to saveable variables
-                self.variables = {'global_step': self.global_step}
-
-        self.variables_are_set = False
+                    # Add to saveable variables
+                    self.variables['global_step'] = self.global_step
 
     def add_variables(self, variables):
         if not self.variables_are_set:
@@ -40,13 +64,11 @@ class TFModel(Model):
                 name = name.split(':')[0]
                 return name
 
-            # Remove id from variable name
+            # Remove model name from variable name
             variable_dict = {
                 parse_name(variable): variable
                 for variable in variables
             }
-
-            print(variable_dict)
 
             # Add to saveable variables
             self.variables.update(variable_dict)
@@ -58,20 +80,25 @@ class TFModel(Model):
 
     def predict(self, inputs):
         with self.graph.as_default():
+            if self.submodel:
+                vscope_name = self.name
+            else:
+                vscope_name = 'variables/{name}'.format(name=self.name)
+
             with tf.variable_scope(
-                    'variables/{id}'.format(id=self.id),
+                    vscope_name,
                     reuse=tf.AUTO_REUSE,
                     auxiliary_name_scope=False) as scope:
-                results = self._predict(inputs)
+                with tf.name_scope(self.name):
+                    results = self._predict(inputs)
 
-                variables = (
-                    scope.trainable_variables() +
-                    scope.local_variables() +
-                    scope.global_variables()
-                )
+                    variables = (
+                        scope.trainable_variables() +
+                        scope.local_variables() +
+                        scope.global_variables()
+                    )
 
-                print('variables', variables)
-                self.add_variables(variables)
+                    self.add_variables(variables)
 
         return results
 

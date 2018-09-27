@@ -12,6 +12,8 @@ from axon_conabio.models.tf_model import TFModel
 
 
 class Model1(TFModel):
+    name = 'simple_2x2_matrix_with_bias'
+
     def _predict(self, inputs):
         with tf.variable_scope('layer_1'):
             matrix = tf.get_variable(
@@ -26,9 +28,6 @@ class Model1(TFModel):
             result = tf.matmul(matrix, inputs) + bias
 
         return result
-
-    def build_loss(self, inputs, labels):
-        pass
 
 
 class TestTFModelClass(unittest.TestCase):
@@ -129,3 +128,40 @@ class TestTFModelClass(unittest.TestCase):
 
         self.assertTrue((output1_pre == output1_post).all())
         self.assertTrue((output2_pre == output2_post).all())
+
+    def test_model_combination(self):
+        sample_input = np.random.random([2, 1])
+        path = '/tmp/axon_conabio/two_layer_model'
+
+        class TwoLayerModel(TFModel):
+            name = 'two_layer_model'
+
+            def _predict(self, inputs):
+                model1 = Model1(graph=self.graph)
+                model2 = Model1(graph=self.graph)
+
+                output1 = model1.predict(inputs)
+                output2 = model2.predict(output1)
+
+                return output2
+
+        with tf.Graph().as_default():
+            model = TwoLayerModel()
+            inputs = tf.placeholder(tf.float32, shape=[2, 1])
+            output_tensor = model.predict(inputs)
+            sess = tf.Session()
+            sess.run(model.init_op())
+
+            output1 = sess.run(output_tensor, feed_dict={inputs: sample_input})
+            model.save(sess, path)
+
+        with tf.Graph().as_default():
+            model = TwoLayerModel()
+            inputs = tf.placeholder(tf.float32, shape=[2, 1])
+            output_tensor = model.predict(inputs)
+            sess = tf.Session()
+            model.restore(sess, path)
+
+            output2 = sess.run(output_tensor, feed_dict={inputs: sample_input})
+
+        self.assertTrue((output1 == output2).all())
