@@ -1,7 +1,13 @@
-from abc import ABC
+from abc import ABCMeta, abstractmethod
+import six
 
 
-class Dataset(ABC):
+@six.add_metaclass(ABCMeta)
+class Dataset(object):
+    @property
+    @abstractmethod
+    def input_structure(self):
+        pass
 
     def iter_train(self):
         pass

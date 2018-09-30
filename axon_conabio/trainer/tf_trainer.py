@@ -126,8 +126,14 @@ class TFTrainer(object):
         summaries = []
         for var, grad_list in six.iteritems(aggregated_gradients):
             name = var.split(':')[0]
-            mean = tf.add_n(grad_list) / len(grad_list)
-            summaries.append(tf.summary.histogram(name, mean))
+            grad_list = [grad for grad in grad_list if grad is not None]
+            if len(grad_list) == 0:
+                continue
+            elif len(grad_list) == 1:
+                summaries.append(tf.summary.histogram(name, grad_list[0]))
+            else:
+                mean = tf.add_n(grad_list) / len(grad_list)
+                summaries.append(tf.summary.histogram(name, mean))
 
         return tf.summary.merge(summaries)
 
@@ -167,6 +173,7 @@ class TFTrainer(object):
                     batch_size=self.config.batch_size,
                     epochs=self.config.epochs)
 
+        # Build training part of model
         if self.config.logging:
             logging.info(
                 'Building model and losses',
@@ -178,6 +185,7 @@ class TFTrainer(object):
             num_gpus=self.config.num_gpus)
         reg_loss = self._get_regularization_loss(model_instance)
 
+        # Build validation part of model
         if self.config.validate:
             validation_losses = validation_loss.build_model_loss(
                 model_instance,
@@ -189,6 +197,7 @@ class TFTrainer(object):
                 tf.add_n(validation_losses) /
                 len(validation_losses))
 
+        # Prepare optimizer and build train operation
         if self.config.logging:
             logging.info(
                 'Building gradients and train operation',
@@ -212,6 +221,7 @@ class TFTrainer(object):
                 validation_loss,
                 prefix='validation')
 
+        # Start session
         if self.config.logging:
             logging.info(
                     'Starting session and initializing variables',
@@ -222,11 +232,11 @@ class TFTrainer(object):
         sess = tf.Session(graph=graph, config=sess_config)
         sess.run(init_op)
 
+        # Create tensorflow summary writers
         if self.config.logging:
             logging.info(
                 'Setting up checkpoint and summary writers',
                 extra={'phase': 'construction'})
-        # Create tensorflow summary writers
         if self.config.tensorboard_summaries:
             path = os.path.join(
                 self.path,
@@ -239,6 +249,7 @@ class TFTrainer(object):
                 validation_writer = tf.summary.FileWriter(
                     os.path.join(path, 'validation'))
 
+        # Restore model to last checkpoint
         checkpoint_dir = os.path.join(
             self.path,
             self.config.checkpoints_dir)

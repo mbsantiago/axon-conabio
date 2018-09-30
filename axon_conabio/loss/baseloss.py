@@ -1,25 +1,14 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 import uuid
-from contextlib import contextmanager
 
+import six
 import tensorflow as tf
 
-
-def collection_scope(func, storage):
-    def wrapper(*args, **kwargs):
-        # All summary operations have name of summary as first argument. Should
-        # this change, this might brake the code.
-        name = args[0]
-        func_name = func.__name__
-        key = (name, func_name)
-        if key not in storage:
-            storage[key] = []
-        storage[key].append((func, args, kwargs))
-
-    return wrapper
+from ..utils import summaries_scope
 
 
-class Loss(ABC):
+@six.add_metaclass(ABCMeta)
+class Loss(object):
     def __init__(self, graph=None):
         if graph is None:
             graph = tf.get_default_graph()
@@ -33,42 +22,8 @@ class Loss(ABC):
     def name(self):
         pass
 
-    @contextmanager
-    def _replace_tf_summaries_with_own(self):
-        old_image_summary = tf.summary.image
-        old_audio_summary = tf.summary.audio
-        old_histogram_summary = tf.summary.histogram
-        old_scalar_summary = tf.summary.scalar
-        old_tensor_summary_summary = tf.summary.tensor_summary
-
-        # Replace tensorflow summary operations with custom decorator
-        tf.summary.image = collection_scope(
-                tf.summary.image,
-                self.summaries)
-        tf.summary.scalar = collection_scope(
-                tf.summary.scalar,
-                self.summaries)
-        tf.summary.audio = collection_scope(
-                tf.summary.audio,
-                self.summaries)
-        tf.summary.histogram = collection_scope(
-                tf.summary.histogram,
-                self.summaries)
-        tf.summary.tensor_summary = collection_scope(
-                tf.summary.tensor_summary,
-                self.summaries)
-
-        yield
-
-        # Restore tensorflow functions
-        tf.summary.image = old_image_summary
-        tf.summary.tensor_summary = old_tensor_summary_summary
-        tf.summary.scalar = old_scalar_summary
-        tf.summary.histogram = old_histogram_summary
-        tf.summary.audio = old_audio_summary
-
     def build_single_loss(self, outputs, labels):
-        with self._replace_tf_summaries_with_own():
+        with summaries_scope(self.summaries):
             with self.graph.as_default():
                 with tf.name_scope(self.name):
                     loss = self._build_loss(outputs, labels)

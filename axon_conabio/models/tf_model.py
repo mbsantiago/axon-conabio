@@ -1,10 +1,15 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
+import collections
+
 import tensorflow as tf
+import six
 
 from .basemodel import Model
+from ..utils import summaries_scope
 
 
-class TFModel(Model, ABC):
+@six.add_metaclass(ABCMeta)
+class TFModel(Model):
     @property
     @abstractmethod
     def name(self):
@@ -75,6 +80,21 @@ class TFModel(Model, ABC):
             self.variables.update(variable_dict)
             self.variables_are_set = True
 
+    def get_tensor(self, tensor_name):
+        if tensor_name not in self.tensors:
+            msg = 'Tensor name {name} is not registered in model'
+            raise KeyError(msg.format(name=tensor_name))
+
+        tensor_list = self.tensors[tensor_name]
+
+        if len(tensor_list) == 1:
+            return tensor_list[0]
+        else:
+            return tf.concat(tensor_list, 0)
+
+    def get_tensors(self):
+        return {key: self.get_tensor(key) for key in self.tensors}
+
     @abstractmethod
     def _predict(self, inputs):
         pass
@@ -102,6 +122,12 @@ class TFModel(Model, ABC):
                     self.add_variables(variables)
 
         return results
+
+    def predict_and_separate_summaries(self, inputs):
+        summaries = {}
+        with summaries_scope(summaries):
+            results = self.predict(inputs)
+        return results, summaries
 
     def save(self, sess, path, **kwargs):
         if not hasattr(self, 'saver'):
