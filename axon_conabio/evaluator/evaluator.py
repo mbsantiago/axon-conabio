@@ -1,46 +1,89 @@
 import os
 import sys
 import logging
+import json
+import csv
 
 import six
 from tqdm import tqdm
 import tensorflow as tf
 
+from .evaluator_config import EvaluatorConfig
 from ..datasets.basedataset import Dataset
 from ..models.basemodel import Model
 from ..metrics.basemetrics import Metric
-from ..utils import TF_DTYPES
+from ..utils import TF_DTYPES, get_checkpoints
 
 
 class Evaluator(object):
-
-    def __init__(
-            self,
-            path,
-            checkpoints_dir='checkpoints',
-            evaluations_dir='evaluations'):
-
+    def __init__(self, config, path):
+        if not isinstance(config, EvaluatorConfig):
+            config = EvaluatorConfig(config)
+        self.config = config
         self.path = path
-        self.checkpoints_dir = os.path.join(path, checkpoints_dir)
-        self.evaluations_dir = os.path.join(path, evaluations_dir)
 
-        if not os.path.exists(self.checkpoints_dir):
-            os.makedirs(self.checkpoints_dir)
+        self._configure_logger()
+
+        self.checkpoints_dir = os.path.join(
+            path, config.checkpoints_dir)
+
+        # Check if model checkpoint exists
+        ckpt = get_checkpoints(self.checkpoints_dir)
+        if ckpt is None:
+            self.logger.warning(
+                'No checkpoint was found',
+                extra={'phase': 'construction'})
+            return None
+        else:
+            ckpt_type, ckpt_path, ckpt_step = ckpt
+            self._ckpt_type = ckpt_type
+            self._ckpt_path = ckpt_path
+            self._ckpt_step = ckpt_step
+
+        self.evaluations_dir = os.path.join(
+            path, config.evaluations_dir)
 
         if not os.path.exists(self.evaluations_dir):
             os.makedirs(self.evaluations_dir)
 
-    def _load_latest_checkpoint(self):
-        ckpt = tf.train.latest_checkpoint(self.checkpoints_dir)
-        if ckpt is None:
-            msg = 'No model checkpoint was found at {path}.\n'
-            msg = 'Exiting evaluation.'
-            msg = msg.format(path=self.checkpoints_dir)
-            logging.error(msg)
-            sys.exit()
-            quit()
+    def _configure_logger(self):
+        logger = logging.getLogger(__name__)
 
-        return ckpt
+        if not self.config.logging:
+            logger.disable(logging.INFO)
+            self.logger = logger
+            return None
+
+        log_format = '%(levelname)s: [%(asctime)-15s] [%(phase)s] %(message)s'
+        formatter = logging.Formatter(log_format)
+
+        verbosity = self.config.verbosity
+        if verbosity == 1:
+            level = logging.ERROR
+        elif verbosity == 2:
+            level = logging.WARNING
+        elif verbosity == 3:
+            level = logging.INFO
+        elif verbosity == 4:
+            level = logging.DEBUG
+        else:
+            msg = 'Verbosity level {l} is not in [1, 2, 3, 4]'
+            raise ValueError(msg.format(verbosity))
+        logger.setLevel(level)
+
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        console_handler.setLevel(level)
+        logger.addHandler(console_handler)
+
+        if self.config.log_to_file:
+            path = os.path.join(self.path, self.config.log_path)
+            file_handler = logging.FileHandler(path)
+            file_handler.setLevel(logging.INFO)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
+
+        self.logger = logger
 
     def _build_inputs(self, dataset):
         input_structure = dataset.input_structure
@@ -82,21 +125,40 @@ class Evaluator(object):
 
         return feed_dict
 
+    def _save_evaluations(self, evaluations):
+        path = os.path.join(
+            self.evaluations_dir,
+            'evaluation_step_{}'.format(self._ckpt_step))
+
+        if self.config.results_format == 'json':
+            with open(path + '.json', 'w') as jsonfile:
+                json.dump(evaluations, jsonfile)
+
+        elif self.config.results_format == 'csv':
+            with open(path + '.csv', 'w') as csvfile:
+                fieldnames = evaluations[0].keys()
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+                writer.writeheader()
+                for row in evaluations:
+                    writer.writerow(row)
+
     def evaluate(self, model=None, dataset=None, metrics=None):
         # Check for correct types
         assert issubclass(model, Model)
         assert issubclass(dataset, Dataset)
         assert isinstance(metrics, (list, tuple))
+
         for metric in metrics:
             assert issubclass(metric, Metric)
-
-        # Check if model checkpoint exists
-        ckpt = self._load_latest_checkpoint()
 
         # Instantiate metrics
         metrics = [metric() for metric in metrics]
 
         # Create new graph for model evaluation
+        self.logger.info(
+            'Building model and dataset',
+            extra={'phase': 'construction'})
         graph = tf.Graph()
 
         # Instantiate model with graph
@@ -109,9 +171,18 @@ class Evaluator(object):
 
         prediction_tensor = model_instance.predict(input_tensors)
 
+        self.logger.info(
+            'Starting session and restoring model',
+            extra={'phase': 'construction'})
         sess = tf.Session(graph=graph)
-        model_instance.restore(sess, ckpt)
+        if self._ckpt_type == 'tf':
+            model_instance.restore(sess, self._ckpt_path)
+        elif self._ckpt_type == 'numpy':
+            model_instance.numpy_restore(sess, self._ckpt_path)
 
+        self.logger.info(
+            'Starting evaluation',
+            extra={'phase': 'construction'})
         evaluations = []
         for id_, inputs, label in tqdm(dataset_instance.iter_test()):
             feed_dict = self._make_feed_dict(input_tensors, inputs)
@@ -122,5 +193,14 @@ class Evaluator(object):
                 results.update(metric(prediction, label))
 
             evaluations.append(results)
+
+            if self.config.save_predictions:
+                self._save_prediction(id_, prediction)
+
+        if self.config.save_results:
+            self.logger.info(
+                'Saving results',
+                extra={'phase': 'saving'})
+            self._save_evaluations(evaluations)
 
         return evaluations

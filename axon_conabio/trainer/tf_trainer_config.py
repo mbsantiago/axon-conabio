@@ -103,12 +103,20 @@ TRAINER_CONFIG_FIELDS = {
         'tensorboard_summaries': True,
         'variable_summaries': False,
         'gradient_summaries': True,
-        'custom_summaries': True,
+        'model_summaries': True,
+        'tensor_summaries': False,
         'save_graph': True,
+        'save_tensors': True,
+        'tensors_per_batch': 1,
         'train_summaries_frequency': 50,
         'validation_summaries_frequency': 200,
-        'custom_summaries_dir': 'custom_summaries',
         'summaries_dir': 'summaries',
+    },
+    'tensor_logs': {
+        'save_tensors': True,
+        'tensors_dir': 'summaries/tensors',
+        'save_tensors_frequency': 100,
+        'tensor_list': [],
     },
     'logging': {
         'logging': True,
@@ -118,8 +126,10 @@ TRAINER_CONFIG_FIELDS = {
     },
     'checkpoints': {
         'checkpoints_frequency': 200,
-        'checkpoints_dir': 'checkpoints',
+        'tensorflow_checkpoints': True,
         'numpy_checkpoints': False,
+        'tensorflow_checkpoints_dir': 'checkpoints/tensorflow',
+        'numpy_checkpoints_dir': 'checkpoints/numpy'
     },
     'regularization': {
         'l1_loss': 0.0,

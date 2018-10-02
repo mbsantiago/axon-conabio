@@ -4,11 +4,16 @@ import os
 import six
 import sys
 import tensorflow as tf
+import numpy as np
 
 from .tf_trainer_config import TrainerConfig
 from ..models.tf_model import TFModel
 from ..loss.baseloss import Loss
 from ..datasets.basedataset import Dataset
+from ..utils import get_checkpoints
+
+
+logger = logging.getLogger(__name__)
 
 
 class TFTrainer(object):
@@ -21,6 +26,47 @@ class TFTrainer(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
+        self._configure_logger()
+
+    def _configure_logger(self):
+        logger = logging.getLogger(__name__)
+
+        if not self.config.logging:
+            logger.disable(logging.INFO)
+            self.logger = logger
+            return None
+
+        log_format = '%(levelname)s: [%(asctime)-15s] [%(phase)s] %(message)s'
+        formatter = logging.Formatter(log_format)
+
+        verbosity = self.config.verbosity
+        if verbosity == 1:
+            level = logging.ERROR
+        elif verbosity == 2:
+            level = logging.WARNING
+        elif verbosity == 3:
+            level = logging.INFO
+        elif verbosity == 4:
+            level = logging.DEBUG
+        else:
+            msg = 'Verbosity level {l} is not in [1, 2, 3, 4]'
+            raise ValueError(msg.format(verbosity))
+        logger.setLevel(level)
+
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        console_handler.setLevel(level)
+        logger.addHandler(console_handler)
+
+        if self.config.log_to_file:
+            path = os.path.join(self.path, self.config.log_path)
+            file_handler = logging.FileHandler(path)
+            file_handler.setLevel(logging.INFO)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
+
+        self.logger = logger
+
     def async_train(self, model=None, loss=None, dataset=None):
         # TODO
         pass
@@ -31,7 +77,7 @@ class TFTrainer(object):
             if (self.config.l1_loss > 0 or self.config.l2_loss > 0):
                 variables = [
                     variable for variable in model.variables.values()
-                    if self.filter_regularization_variables(variable)]
+                    if self._filter_regularization_variables(variable)]
                 for var in variables:
                     if self.config.l1_loss > 0:
                         loss += tf.reduce_sum(tf.abs(var))
@@ -40,7 +86,7 @@ class TFTrainer(object):
                         loss += tf.nn.l2_loss(var)
         return loss
 
-    def filter_regularization_variables(self, variable):
+    def _filter_regularization_variables(self, variable):
         if 'bias' in variable.name:
             return False
         if not variable._trainable:
@@ -78,36 +124,11 @@ class TFTrainer(object):
 
         return train_op, total_loss, gradients_list
 
-    def _configure_logging(self):
-        log_format = '%(levelname)s: [%(asctime)-15s] [%(phase)s] %(message)s'
-
-        verbosity = self.config.verbosity
-        if verbosity == 1:
-            level = logging.ERROR
-        elif verbosity == 2:
-            level = logging.WARNING
-        elif verbosity == 3:
-            level = logging.INFO
-        elif verbosity == 4:
-            level = logging.DEBUG
-        else:
-            msg = 'Verbosity level {l} is not in [1, 2, 3, 4]'
-            raise ValueError(msg.format(verbosity))
-
-        if self.config.log_to_file:
-            path = os.path.join(self.path, self.config.log_path)
-            logging.basicConfig(
-                format=log_format,
-                level=level,
-                filename=path,
-                filemode='a')
-            logging.getLogger().addHandler(
-                logging.StreamHandler(sys.stdout))
-        else:
-            logging.basicConfig(format=log_format, level=level)
-
     def _build_summary_op(self, model, loss, gradients=None, prefix=None):
         summaries = [loss.summary_op(prefix=prefix)]
+
+        if self.config.model_summaries:
+            summaries.append(model.get_model_summaries(run_name=prefix))
 
         if self.config.variable_summaries:
             summaries.append(model.get_variable_summaries(prefix=prefix))
@@ -137,6 +158,23 @@ class TFTrainer(object):
 
         return tf.summary.merge(summaries)
 
+    def _save_tensors(self, tensors, step):
+        directory = os.path.join(
+            self.path,
+            self.config.tensors_dir)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        path = os.path.join(
+            directory,
+            'step_{}'.format(step))
+
+        num_sample = self.config.tensors_per_batch
+        tensor_samples = {
+            key: value[:num_sample]
+            for key, value in six.iteritems(tensors)}
+        np.savez(path, **tensor_samples)
+
     def train(self, model=None, loss=None, dataset=None):
         # Check if objects are elements of the corresponding classes
         assert issubclass(model, TFModel)
@@ -144,9 +182,7 @@ class TFTrainer(object):
         assert issubclass(dataset, Dataset)
 
         # Configure logging
-        if self.config.logging:
-            tf.logging.set_verbosity(tf.logging.WARN)
-            self._configure_logging()
+        tf.logging.set_verbosity(tf.logging.WARN)
 
         # Build graph for  training
         graph = tf.Graph()
@@ -157,10 +193,9 @@ class TFTrainer(object):
         validation_loss = loss(graph=graph)
 
         # Train input, loss and train_op construction
-        if self.config.logging:
-            logging.info(
-                'Building inputs',
-                extra={'phase': 'construction'})
+        self.logger.info(
+            'Building inputs',
+            extra={'phase': 'construction'})
 
         with graph.as_default():
             dataset_instance = dataset()
@@ -174,15 +209,15 @@ class TFTrainer(object):
                     epochs=self.config.epochs)
 
         # Build training part of model
-        if self.config.logging:
-            logging.info(
-                'Building model and losses',
-                extra={'phase': 'construction'})
+        self.logger.info(
+            'Building model and losses',
+            extra={'phase': 'construction'})
         train_losses = train_loss.build_model_loss(
             model_instance,
             train_input,
             train_label,
-            num_gpus=self.config.num_gpus)
+            num_gpus=self.config.num_gpus,
+            run_name='train')
         reg_loss = self._get_regularization_loss(model_instance)
 
         # Build validation part of model
@@ -191,17 +226,17 @@ class TFTrainer(object):
                 model_instance,
                 validation_input,
                 validation_label,
-                num_gpus=self.config.num_gpus)
+                num_gpus=self.config.num_gpus,
+                run_name='validation')
 
             total_validation_loss = (
                 tf.add_n(validation_losses) /
                 len(validation_losses))
 
         # Prepare optimizer and build train operation
-        if self.config.logging:
-            logging.info(
-                'Building gradients and train operation',
-                extra={'phase': 'construction'})
+        self.logger.info(
+            'Building gradients and train operation',
+            extra={'phase': 'construction'})
         train_outputs = self._get_train_op_multiple_gpu(
             model_instance,
             train_losses,
@@ -221,11 +256,23 @@ class TFTrainer(object):
                 validation_loss,
                 prefix='validation')
 
+        # Prepare tensors for saving
+        save_tensors = False
+        if self.config.save_tensors:
+            train_tensors = model_instance.get_tensors(
+                run_name='train')
+            train_tensors = {
+                key: value for key, value
+                in six.iteritems(train_tensors)
+                if key in self.config.tensor_list
+            }
+            if len(train_tensors) > 0:
+                save_tensors = True
+
         # Start session
-        if self.config.logging:
-            logging.info(
-                    'Starting session and initializing variables',
-                    extra={'phase': 'construction'})
+        self.logger.info(
+                'Starting session and initializing variables',
+                extra={'phase': 'construction'})
         sess_config = tf.ConfigProto(
             allow_soft_placement=True,
             log_device_placement=True)
@@ -233,10 +280,9 @@ class TFTrainer(object):
         sess.run(init_op)
 
         # Create tensorflow summary writers
-        if self.config.logging:
-            logging.info(
-                'Setting up checkpoint and summary writers',
-                extra={'phase': 'construction'})
+        self.logger.info(
+            'Setting up checkpoint and summary writers',
+            extra={'phase': 'construction'})
         if self.config.tensorboard_summaries:
             path = os.path.join(
                 self.path,
@@ -250,30 +296,47 @@ class TFTrainer(object):
                     os.path.join(path, 'validation'))
 
         # Restore model to last checkpoint
-        checkpoint_dir = os.path.join(
+        tf_checkpoint_dir = os.path.join(
             self.path,
-            self.config.checkpoints_dir)
-        ckpt = tf.train.latest_checkpoint(checkpoint_dir)
+            self.config.tensorflow_checkpoints_dir)
+        npy_checkpoint_dir = os.path.join(
+            self.path,
+            self.config.numpy_checkpoints_dir)
+
+        if not os.path.exists(tf_checkpoint_dir):
+            os.makedirs(tf_checkpoint_dir)
+
+        if not os.path.exists(npy_checkpoint_dir):
+            os.makedirs(npy_checkpoint_dir)
+
+        ckpt = get_checkpoints(
+            self.path,
+            tf_subdir=self.config.tensorflow_checkpoints_dir,
+            npy_subdir=self.config.numpy_checkpoints_dir)
         if ckpt is not None:
-            if self.config.logging:
-                logging.info(
-                    'Restoring model',
-                    extra={'phase': 'construction'})
-            model_instance.restore(sess, ckpt)
+            ckpt_type, ckpt_path, ckpt_step = ckpt
+            if ckpt_type == 'tf':
+                model_instance.restore(sess, ckpt_path)
+            elif ckpt_type == 'numpy':
+                model_instance.numpy_restore(sess, ckpt_path)
+            self.logger.info(
+                'Restoring model to training step {}'.format(ckpt_step),
+                extra={'phase': 'construction'})
         else:
-            if self.config.logging:
-                logging.info(
-                    'No checkpoint was found. Starting anew.',
-                    extra={'phase': 'construction'})
+            self.logger.info(
+                'No checkpoint was found. Starting anew.',
+                extra={'phase': 'construction'})
 
         log = (self.config.logging or self.config.tensorboard_summaries)
+        checkpoints = (
+            self.config.numpy_checkpoints or
+            self.config.tensorflow_checkpoints)
         train_sum_freq = self.config.train_summaries_frequency
         valid_sum_freq = self.config.validation_summaries_frequency
 
-        if self.config.logging:
-            logging.info(
-                'Starting training loop',
-                extra={'phase': 'construction'})
+        self.logger.info(
+            'Starting training loop',
+            extra={'phase': 'construction'})
         step = None
         # Main training loop
         try:
@@ -285,10 +348,9 @@ class TFTrainer(object):
 
                 if log:
                     if step % train_sum_freq == 0:
-                        if self.config.logging:
-                            msg = '[step {st}] train_loss : {ls}'.format(
-                                st=step, ls=loss)
-                            logging.info(msg, extra={'phase': 'training'})
+                        msg = '[step {st}] train_loss : {ls}'.format(
+                            st=step, ls=loss)
+                        self.logger.info(msg, extra={'phase': 'training'})
 
                         if self.config.tensorboard_summaries:
                             str_summaries = sess.run(train_summary_op)
@@ -299,12 +361,11 @@ class TFTrainer(object):
                     if self.config.validate:
                         if step % valid_sum_freq == 0:
                             loss = sess.run(total_validation_loss)
-                            if self.config.logging:
-                                msg = '[step {st}] validation_loss : {ls}'
-                                msg = msg.format(st=step, ls=loss)
-                                logging.info(
-                                    msg,
-                                    extra={'phase': 'validation'})
+                            msg = '[step {st}] validation_loss : {ls}'
+                            msg = msg.format(st=step, ls=loss)
+                            self.logger.info(
+                                msg,
+                                extra={'phase': 'validation'})
 
                             if self.config.tensorboard_summaries:
                                 str_summaries = sess.run(validation_summary_op)
@@ -312,33 +373,58 @@ class TFTrainer(object):
                                     str_summaries,
                                     global_step=step)
 
-                if step % self.config.checkpoints_frequency == 0:
-                    if self.config.logging:
+                if save_tensors:
+                    if step % self.config.save_tensors_frequency == 0:
+                        tensor_results = sess.run(train_tensors)
+                        self._save_tensors(tensor_results, step)
+
+                if checkpoints:
+                    if step % self.config.checkpoints_frequency == 0:
                         msg = '[step {st}] Checkpoint saved.'.format(st=step)
-                        logging.info(msg, extra={'phase': 'checkpoints'})
-                    model_instance.save(
-                        sess,
-                        os.path.join(checkpoint_dir, 'ckpt'),
-                        global_step=step)
+                        self.logger.info(msg, extra={'phase': 'checkpoints'})
+
+                        if self.config.tensorflow_checkpoints:
+                            model_instance.save(
+                                sess,
+                                os.path.join(tf_checkpoint_dir, 'ckpt'),
+                                global_step=step)
+
+                        if self.config.numpy_checkpoints:
+                            model_instance.numpy_save(
+                                sess,
+                                npy_checkpoint_dir,
+                                step=step)
 
         except KeyboardInterrupt:
-            if self.config.logging:
-                msg = 'User interrupted training'
-                logging.info(msg, extra={'phase': 'control'})
+            msg = 'User interrupted training'
+            self.logger.warning(msg, extra={'phase': 'control'})
 
             if step is not None:
-                model_instance.save(
+                if self.config.tensorflow_checkpoints:
+                    model_instance.save(
                         sess,
-                        os.path.join(checkpoint_dir, 'ckpt'),
+                        os.path.join(tf_checkpoint_dir, 'ckpt'),
                         global_step=step)
+
+                if self.config.numpy_checkpoints:
+                    model_instance.numpy_save(
+                        sess,
+                        npy_checkpoint_dir,
+                        step=step)
 
         except tf.errors.OutOfRangeError:
-            if self.config.logging:
-                msg = 'Dataset iterations done.'
-                logging.info(msg, extra={'phase': 'control'})
+            msg = 'Dataset iterations done.'
+            self.logging.info(msg, extra={'phase': 'control'})
 
             if step is not None:
-                model_instance.save(
+                if self.config.tensorflow_checkpoints:
+                    model_instance.save(
                         sess,
-                        os.path.join(checkpoint_dir, 'ckpt'),
+                        os.path.join(tf_checkpoint_dir, 'ckpt'),
                         global_step=step)
+
+                if self.config.numpy_checkpoints:
+                    model_instance.numpy_save(
+                        sess,
+                        npy_checkpoint_dir,
+                        step=step)
