@@ -19,6 +19,13 @@ setup(
     url='https://github.com/mbsantiago/axon-conabio',
     packages=find_packages(),
     include_package_data=True,
+    install_requires=[
+        'tqdm',
+        'six',
+        'click',
+        'numpy',
+        'tensorflow',
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

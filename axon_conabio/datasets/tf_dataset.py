@@ -1,7 +1,6 @@
 from abc import ABCMeta
 import os
 import json
-import yaml
 
 import tensorflow as tf
 
@@ -83,9 +82,8 @@ class TFDatasetConfig(object):
         config_file = os.path.join(path, name)
 
         json_exists = os.path.exists(config_file + '.json')
-        yaml_exists = os.path.exists(config_file + '.yaml')
 
-        if (not json_exists and not yaml_exists):
+        if (not json_exists):
             msg = 'No configuration file for TFDataset was found at {path}'
             msg = msg.format(path=path)
             raise IOError(msg)
@@ -93,9 +91,6 @@ class TFDatasetConfig(object):
         if json_exists:
             with open(config_file + '.json', 'r') as jfile:
                 config = json.load(jfile)
-        else:
-            with open(config_file + '.yaml', 'r') as yfile:
-                config = yaml.load(yfile)
 
         return cls(config)
 
