@@ -8,7 +8,6 @@ import six
 from tqdm import tqdm
 import tensorflow as tf
 
-from .evaluator_config import EvaluatorConfig
 from ..datasets.basedataset import Dataset
 from ..models.basemodel import Model
 from ..metrics.basemetrics import Metric
@@ -17,15 +16,14 @@ from ..utils import TF_DTYPES, get_checkpoints
 
 class Evaluator(object):
     def __init__(self, config, path):
-        if not isinstance(config, EvaluatorConfig):
-            config = EvaluatorConfig(config)
         self.config = config
         self.path = path
 
         self._configure_logger()
 
+        ckpt_dir = config['other']['checkpoints_dir']
         self.checkpoints_dir = os.path.join(
-            path, config.checkpoints_dir)
+            path, ckpt_dir)
 
         # Check if model checkpoint exists
         ckpt = get_checkpoints(self.checkpoints_dir)
@@ -40,16 +38,27 @@ class Evaluator(object):
             self._ckpt_path = ckpt_path
             self._ckpt_step = ckpt_step
 
-        self.evaluations_dir = os.path.join(
-            path, config.evaluations_dir)
+        evals_dir = config['evaluations']['evaluations_dir']
+        self.evaluations_dir = os.path.join(path, evals_dir)
 
         if not os.path.exists(self.evaluations_dir):
             os.makedirs(self.evaluations_dir)
 
+        fmt = self.config['evaluations']['results_format']
+        filepath = os.path.join(
+            self.evaluations_dir,
+            'evaluation_step_{}.{}'.format(self._ckpt_step, fmt))
+
+        if os.path.exists(filepath):
+            msg = 'An evaluation file at step {} already exists.'
+            msg = msg.format(self._ckpt_step)
+            raise ValueError(msg)
+
     def _configure_logger(self):
         logger = logging.getLogger(__name__)
+        log_config = self.config['logging']
 
-        if not self.config.logging:
+        if not log_config.getboolean('logging'):
             logger.disable(logging.INFO)
             self.logger = logger
             return None
@@ -57,7 +66,7 @@ class Evaluator(object):
         log_format = '%(levelname)s: [%(asctime)-15s] [%(phase)s] %(message)s'
         formatter = logging.Formatter(log_format)
 
-        verbosity = self.config.verbosity
+        verbosity = log_config.getint('verbosity')
         if verbosity == 1:
             level = logging.ERROR
         elif verbosity == 2:
@@ -76,8 +85,8 @@ class Evaluator(object):
         console_handler.setLevel(level)
         logger.addHandler(console_handler)
 
-        if self.config.log_to_file:
-            path = os.path.join(self.path, self.config.log_path)
+        if log_config.getboolean('log_to_file'):
+            path = os.path.join(self.path, log_config['log_path'])
             file_handler = logging.FileHandler(path)
             file_handler.setLevel(logging.INFO)
             file_handler.setFormatter(formatter)
@@ -130,11 +139,12 @@ class Evaluator(object):
             self.evaluations_dir,
             'evaluation_step_{}'.format(self._ckpt_step))
 
-        if self.config.results_format == 'json':
+        file_format = self.config['evaluations']['results_format']
+        if file_format == 'json':
             with open(path + '.json', 'w') as jsonfile:
                 json.dump(evaluations, jsonfile)
 
-        elif self.config.results_format == 'csv':
+        elif file_format == 'csv':
             with open(path + '.csv', 'w') as csvfile:
                 fieldnames = evaluations[0].keys()
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -194,10 +204,10 @@ class Evaluator(object):
 
             evaluations.append(results)
 
-            if self.config.save_predictions:
+            if self.config['evaluations'].getboolean('save_predictions'):
                 self._save_prediction(id_, prediction)
 
-        if self.config.save_results:
+        if self.config['evaluations'].getboolean('save_results'):
             self.logger.info(
                 'Saving results',
                 extra={'phase': 'saving'})
