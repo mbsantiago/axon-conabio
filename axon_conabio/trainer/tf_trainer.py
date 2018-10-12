@@ -294,7 +294,7 @@ class TFTrainer(object):
                 extra={'phase': 'construction'})
         sess_config = tf.ConfigProto(
             allow_soft_placement=True,
-            log_device_placement=True)
+            log_device_placement=False)
         sess = tf.Session(graph=graph, config=sess_config)
         sess.run(init_op)
 

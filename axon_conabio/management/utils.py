@@ -1,6 +1,9 @@
 import os
 import importlib
 import sys
+import click
+
+from .config import get_config
 
 
 def get_base_project(path):
@@ -74,6 +77,22 @@ def extract_class(path, name):
         msg = msg.format(os.path.basename(path), name)
         raise AttributeError(msg)
     return klass
+
+
+def get_all_models(ctx, args, incomplete):
+    project = get_base_project('.')
+
+    # Get configuration
+    config_path = None
+    if project is not None:
+        config_path = os.path.join(
+                project, '.project', 'axon_config.ini')
+    else:
+        return []
+    config = get_config(path=config_path)
+    models_dir = config['structure']['models_dir']
+    click.echo(models_dir)
+    return [x for x in os.listdir(models_dir) if incomplete in x]
 
 
 def get_model_path(name, project, config):

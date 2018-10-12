@@ -153,7 +153,82 @@ class Evaluator(object):
                 for row in evaluations:
                     writer.writerow(row)
 
-    def evaluate(self, model=None, dataset=None, metrics=None):
+    def _evaluate_tf(self, model=None, dataset=None, metrics=None):
+        # Check for correct types
+        assert issubclass(model, Model)
+        assert issubclass(dataset, Dataset)
+        assert isinstance(metrics, (list, tuple))
+
+        for metric in metrics:
+            assert issubclass(metric, Metric)
+
+        # Instantiate metrics
+        metrics = [metric() for metric in metrics]
+
+        # Create new graph for model evaluation
+        self.logger.info(
+            'Building model and dataset',
+            extra={'phase': 'construction'})
+        graph = tf.Graph()
+
+        # Instantiate model with graph
+        model_instance = model(graph=graph)
+
+        # Create input pipeline
+        with graph.as_default():
+            dataset_instance = dataset()
+            ids, inputs, labels = dataset_instance.iter_test()
+
+        # Add an extra dimension for batch
+        prediction_tensor = model_instance.predict(tf.expand_dims(inputs, 0))
+
+        self.logger.info(
+                'Starting session and restoring model',
+                extra={'phase': 'construction'})
+        sess = tf.Session(graph=graph)
+        if self._ckpt_type == 'tf':
+            model_instance.restore(sess, self._ckpt_path)
+        elif self._ckpt_type == 'numpy':
+            model_instance.numpy_restore(sess, self._ckpt_path)
+
+        self.logger.info(
+                'Starting evaluation',
+                extra={'phase': 'construction'})
+        evaluations = []
+        pbar = tqdm()
+        try:
+            while True:
+                id_, prediction, label = sess.run(
+                    [ids, prediction_tensor, labels])
+
+                # Remove extra dimension from batch=1
+                prediction = prediction[0]
+
+                results = {'id': id_}
+                for metric in metrics:
+                    results.update(metric(prediction, label))
+
+                evaluations.append(results)
+
+                if self.config['evaluations'].getboolean('save_predictions'):
+                    self._save_prediction(id_, prediction)
+
+                pbar.update(1)
+
+        except tf.errors.OutOfRangeError:
+            self.logger.info(
+                'Iterations over',
+                extra={'phase': 'evaluations'})
+
+        if self.config['evaluations'].getboolean('save_results'):
+            self.logger.info(
+                    'Saving results',
+                    extra={'phase': 'saving'})
+            self._save_evaluations(evaluations)
+
+        return evaluations
+
+    def _evaluate_no_tf(self, model=None, dataset=None, metrics=None):
         # Check for correct types
         assert issubclass(model, Model)
         assert issubclass(dataset, Dataset)
@@ -212,5 +287,28 @@ class Evaluator(object):
                 'Saving results',
                 extra={'phase': 'saving'})
             self._save_evaluations(evaluations)
+
+        return evaluations
+
+    def evaluate(self, model=None, dataset=None, metrics=None):
+        assert issubclass(dataset, Dataset)
+
+        # Check if dataset is a tf dataset
+        with tf.Graph().as_default():
+            dataset_instance = dataset()
+            is_tf = isinstance(dataset_instance.iter_test()[0], tf.Tensor)
+
+        if is_tf:
+            self.logger.info(
+                'Tensorflow dataset detected.',
+                extra={'phase': 'construction'})
+            evaluations = self._evaluate_tf(
+                model=model, dataset=dataset, metrics=metrics)
+        else:
+            self.logger.info(
+                'Iterable dataset detected.',
+                extra={'phase': 'construction'})
+            evaluations = self._evaluate_no_tf(
+                model=model, dataset=dataset, metrics=metrics)
 
         return evaluations
