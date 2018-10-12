@@ -296,7 +296,13 @@ class TFTrainer(object):
             allow_soft_placement=True,
             log_device_placement=False)
         sess = tf.Session(graph=graph, config=sess_config)
+
+        # Initialize global variables
         sess.run(init_op)
+        # Intialize local variables
+        with graph.as_default():
+            local_init = tf.local_variables_initializer()
+        sess.run(local_init)
 
         # Create tensorflow summary writers
         self.logger.info(
