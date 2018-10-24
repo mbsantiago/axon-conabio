@@ -7,7 +7,7 @@ from .evaluate import evaluate as ev
 from .make_project import make_project as mp
 
 from .config import get_config
-from .utils import get_base_project, get_model_path
+from .utils import get_base_project, get_model_path, get_all_models
 
 
 @click.group()
@@ -16,7 +16,7 @@ def main():
 
 
 @main.command()
-@click.argument('name', required=False)
+@click.argument('name', required=False, autocompletion=get_all_models)
 @click.option('--path')
 def train(name, path):
     # Get current project
@@ -38,11 +38,16 @@ def train(name, path):
     # If name was given
     if name is not None:
         path = get_model_path(name, project, config)
+
+    if not os.path.exists(path):
+        msg = 'No model with name {} was found'.format(name)
+        raise click.UsageError(msg)
+
     tr(path, config, project)
 
 
 @main.command()
-@click.argument('name', required=False)
+@click.argument('name', required=False, autocompletion=get_all_models)
 @click.option('--path')
 def evaluate(name, path):
     # Get current project
@@ -64,6 +69,11 @@ def evaluate(name, path):
     # If name was given
     if name is not None:
         path = get_model_path(name, project, config)
+
+    if not os.path.exists(path):
+        msg = 'No model with name {} was found'.format(name)
+        raise click.UsageError(msg)
+
     ev(path, config, project)
 
 
