@@ -17,7 +17,7 @@ class TFModel(Model):
     def name(self):
         return 'model'
 
-    def __init__(self, graph=None):
+    def __init__(self, graph=None, keep_prob=1):
         if graph is None:
             graph = tf.get_default_graph()
         self.graph = graph
@@ -49,6 +49,9 @@ class TFModel(Model):
 
         # Storage for summaries operations within model
         self.summaries = {}
+
+        # Dropout probabilities
+        self.keep_prob = keep_prob
 
         # Storage for user-selected tensors
         self.tensors = {}
@@ -130,6 +133,10 @@ class TFModel(Model):
         # Empty temporal tensor storage
         self._tmp_tensor_storage = {}
 
+        if 'train' not in str(run_name):
+            keep_prob_tmp = self.keep_prob
+            self.keep_prob = 1
+
         summaries = {}
         with summary_scope(summaries):
             with self.graph.as_default():
@@ -159,6 +166,9 @@ class TFModel(Model):
                         )
 
                         self._add_variables(variables)
+
+        if 'train' not in run_name:
+            self.keep_prob = keep_prob_tmp
 
         self._register_tensors(run_name=run_name, sub_run=sub_run)
         self._register_summaries(summaries, run_name=run_name)

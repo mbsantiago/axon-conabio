@@ -1,0 +1,12 @@
+1. Stop at iteration.
+2. Keep prob implementation
+3. Model summaries bug (crashes if empty)
+4. Regularization summaries
+5. Retrain by CLI
+6. CLI tool for new models
+7. Copy of default config in .project dir for orientation
+8. Gradient summary names
+9. Code backup after training
+10. Tqdm bar bug in tf_evaluator (should close at end)
+11. Check if model to train or evaluate exists, else return a list
+12. CLI to list all available components
