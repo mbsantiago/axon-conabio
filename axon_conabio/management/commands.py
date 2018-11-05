@@ -7,7 +7,10 @@ from .evaluate import evaluate as ev
 from .make_project import make_project as mp
 
 from .config import get_config
-from .utils import get_base_project, get_model_path, get_all_models
+from .utils import (
+    get_base_project,
+    get_model_path,
+    get_all_models)
 
 
 @click.group()
@@ -16,7 +19,7 @@ def main():
 
 
 @main.command()
-@click.argument('name', required=False, autocompletion=get_all_models)
+@click.argument('name', required=False)
 @click.option('--path')
 @click.option('--retrain', is_flag=True)
 def train(name, path, retrain):
@@ -48,14 +51,55 @@ def train(name, path, retrain):
         path = get_model_path(name, project, config)
 
     if not os.path.exists(path):
-        msg = 'No model with name {} was found'.format(name)
+        msg = 'No model with name {name} was found. Available models: {list}'
+        model_list = ', '.join(get_all_models())
+        msg = msg.format(name=name, list=model_list)
         raise click.UsageError(msg)
 
     tr(path, config, project, retrain=retrain)
 
 
 @main.command()
-@click.argument('name', required=False, autocompletion=get_all_models)
+@click.argument('type', type=click.Choice([
+    'architectures',
+    'losses',
+    'metrics',
+    'models',
+    'datasets']))
+@click.option('--path')
+def list(type, path):
+    if path is None:
+        path = '.'
+
+    project = get_base_project(path)
+    config_path = os.path.join(
+            project, '.project', 'axon_config.ini')
+    config = get_config(path=config_path)
+    structure = config['structure']
+
+    if type == 'models':
+        result = os.listdir(
+            os.path.join(
+                project,
+                structure['models_dir']))
+    else:
+        type_name = type + '_dir'
+        directory = os.path.join(
+            project,
+            structure[type_name])
+        result = [
+            os.path.splitext(os.path.basename(x))[0]
+            for x in os.listdir(directory)
+            if x[-3:] == '.py']
+
+    msg = 'Available {}:'.format(type)
+    for n, name in enumerate(result):
+        msg += '\n\t{}. {}'.format(n + 1, name)
+
+    click.echo(msg)
+
+
+@main.command()
 @click.option('--path')
 def evaluate(name, path):
     # Get current project
@@ -79,7 +123,9 @@ def evaluate(name, path):
         path = get_model_path(name, project, config)
 
     if not os.path.exists(path):
-        msg = 'No model with name {} was found'.format(name)
+        msg = 'No model with name {name} was found. Available models: {list}'
+        model_list = ', '.join(get_all_models())
+        msg = msg.format(name=name, list=model_list)
         raise click.UsageError(msg)
 
     ev(path, config, project)

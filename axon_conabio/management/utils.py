@@ -79,7 +79,7 @@ def extract_class(path, name):
     return klass
 
 
-def get_all_models(ctx, args, incomplete):
+def get_all_models():
     project = get_base_project('.')
 
     # Get configuration
@@ -91,8 +91,7 @@ def get_all_models(ctx, args, incomplete):
         return []
     config = get_config(path=config_path)
     models_dir = config['structure']['models_dir']
-    click.echo(models_dir)
-    return [x for x in os.listdir(models_dir) if incomplete in x]
+    return os.listdir(models_dir)
 
 
 def get_model_path(name, project, config):
