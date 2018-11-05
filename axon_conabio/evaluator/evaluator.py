@@ -186,10 +186,8 @@ class Evaluator(object):
                 'Starting session and restoring model',
                 extra={'phase': 'construction'})
         sess = tf.Session(graph=graph)
-        if self._ckpt_type == 'tf':
-            model_instance.restore(sess, self._ckpt_path)
-        elif self._ckpt_type == 'numpy':
-            model_instance.numpy_restore(sess, self._ckpt_path)
+        model_instance.restore(
+            sess, path=self._ckpt_path, mode=self._ckpt_type)
 
         self.logger.info(
                 'Starting evaluation',
@@ -261,10 +259,8 @@ class Evaluator(object):
             'Starting session and restoring model',
             extra={'phase': 'construction'})
         sess = tf.Session(graph=graph)
-        if self._ckpt_type == 'tf':
-            model_instance.restore(sess, self._ckpt_path)
-        elif self._ckpt_type == 'numpy':
-            model_instance.numpy_restore(sess, self._ckpt_path)
+        model_instance.restore(
+            sess, path=self._ckpt_path, mode=self._ckpt_type)
 
         self.logger.info(
             'Starting evaluation',

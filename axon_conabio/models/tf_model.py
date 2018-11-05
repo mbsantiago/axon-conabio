@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import collections
 import os
+import logging
 
 import tensorflow as tf
 import numpy as np
@@ -8,6 +9,9 @@ import six
 
 from .basemodel import Model
 from ..utils import summary_scope, summary_aggregation
+
+
+logger = logging.getLogger(__name__)
 
 
 @six.add_metaclass(ABCMeta)
@@ -197,7 +201,24 @@ class TFModel(Model):
 
         self.saver.save(sess, path, **kwargs)
 
-    def restore(self, sess, path):
+    def restore(self, sess, path=None, mode=None):
+        if not self.variables_are_set:
+            msg = 'Model variables have not been built yet. Restoring empty'
+            msg += ' set of variables!'
+            logger.warning(msg)
+
+        if path is None:
+            path = self.ckpt_path
+
+        if mode is None:
+            mode = self.ckpt_type
+
+        if mode == 'tf':
+            self.tf_restore(sess, path)
+        else:
+            self.numpy_restore(sess, path)
+
+    def tf_restore(self, sess, path):
         if not hasattr(self, 'saver'):
             self.saver = tf.train.Saver(self.variables)
 

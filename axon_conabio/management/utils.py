@@ -1,9 +1,15 @@
 import os
 import importlib
 import sys
-import click
+import logging
+import configparser
 
 from .config import get_config
+from ..utils import get_checkpoints
+from ..trainer.tf_trainer_config import get_config as get_train_config
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_base_project(path):
@@ -86,7 +92,7 @@ def get_all_models():
     config_path = None
     if project is not None:
         config_path = os.path.join(
-                project, '.project', 'axon_config.ini')
+            project, '.project', 'axon_config.ini')
     else:
         return []
     config = get_config(path=config_path)
@@ -97,3 +103,60 @@ def get_all_models():
 def get_model_path(name, project, config):
     models_dir = config['structure']['models_dir']
     return os.path.join(project, models_dir, name)
+
+
+def load_model(name=None, path=None):
+    if (name is None) and (path is None):
+        raise ValueError('Name or path must be supplied')
+
+    if path is None:
+        project = get_base_project('.')
+
+    if name is None:
+        name = os.path.basename(path)
+
+    config_path = os.path.join(
+        project, '.project', 'axon_config.ini')
+    config = get_config(path=config_path)
+
+    if path is None:
+        path = os.path.join(
+            project, config['structure']['models_dir'], name)
+
+    model_file = config['configurations']['model_specs']
+    model_config = configparser.ConfigParser()
+    model_config.read([
+        os.path.join(project, '.project', model_file),
+        os.path.join(path, model_file)])
+
+    architecture_name = model_config['model']['architecture']
+
+    # Read classes
+    model = get_class(
+        architecture_name,
+        'architecture',
+        project,
+        config)()
+
+    project_train_config_path = os.path.join(
+        project,
+        '.project',
+        config['configurations']['train_configs'])
+    train_config_path = os.path.join(
+        path,
+        config['configurations']['train_configs'])
+    train_config = get_train_config(
+        paths=[project_train_config_path, train_config_path]).config
+    tf_subdir = train_config['checkpoints']['tensorflow_checkpoints_dir']
+    npy_subdir = train_config['checkpoints']['numpy_checkpoints_dir']
+    ckpt = get_checkpoints(
+        path,
+        tf_subdir=tf_subdir,
+        npy_subdir=npy_subdir)
+
+    if ckpt is not None:
+        ckpt_type, ckpt_path, ckpt = ckpt
+        model.ckpt_type = ckpt_type
+        model.ckpt_path = ckpt_path
+
+    return model

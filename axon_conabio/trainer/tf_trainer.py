@@ -111,10 +111,10 @@ class TFTrainer(object):
                     if self._filter_regularization_variables(variable)]
                 for var in variables:
                     if l1_loss > 0:
-                        loss += tf.reduce_sum(tf.abs(var))
+                        loss += tf.reduce_sum(tf.abs(var)) * l1_loss
 
                     if l2_loss > 0:
-                        loss += tf.nn.l2_loss(var)
+                        loss += tf.nn.l2_loss(var) * l2_loss
         return loss
 
     def _filter_regularization_variables(self, variable):
@@ -393,10 +393,7 @@ class TFTrainer(object):
             npy_subdir=npy_ckp_dir)
         if ckpt is not None:
             ckpt_type, ckpt_path, ckpt_step = ckpt
-            if ckpt_type == 'tf':
-                model_instance.restore(sess, ckpt_path)
-            elif ckpt_type == 'numpy':
-                model_instance.numpy_restore(sess, ckpt_path)
+            model_instance.restore(sess, path=ckpt_path, mode=ckpt_type)
             self.logger.info(
                 'Restoring model to training step {}'.format(ckpt_step),
                 extra={'phase': 'construction'})
