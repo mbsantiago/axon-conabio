@@ -1,9 +1,9 @@
 1. Stop at iteration. (DONE)
 2. Keep prob implementation (DONE)
 3. Model summaries bug (crashes if empty) (DONE)
-4. Regularization summaries
-5. Retrain by CLI
-6. CLI tool for new models
+4. Regularization summaries (DONE)
+5. Retrain by CLI (DONE)
+6. CLI tool for new models 
 7. Copy of default config in .project dir for orientation
 8. Gradient summary names
 9. Code backup after training

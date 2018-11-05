@@ -18,7 +18,15 @@ def main():
 @main.command()
 @click.argument('name', required=False, autocompletion=get_all_models)
 @click.option('--path')
-def train(name, path):
+@click.option('--retrain', is_flag=True)
+def train(name, path, retrain):
+
+    if retrain:
+        msg = 'Retrain option is set. This will erase all summaries'
+        msg += ' and checkpoints currently available for this model.'
+        msg += ' Do you wish to continue?'
+        click.confirm(msg, abort=True)
+
     # Get current project
     if name is not None:
         project = get_base_project('.')
@@ -43,7 +51,7 @@ def train(name, path):
         msg = 'No model with name {} was found'.format(name)
         raise click.UsageError(msg)
 
-    tr(path, config, project)
+    tr(path, config, project, retrain=retrain)
 
 
 @main.command()

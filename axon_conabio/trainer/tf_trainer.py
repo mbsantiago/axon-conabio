@@ -1,6 +1,7 @@
 import logging
 import collections
 import os
+import shutil
 import six
 import sys
 import tensorflow as tf
@@ -14,7 +15,7 @@ from ..utils import get_checkpoints
 
 
 class TFTrainer(object):
-    def __init__(self, config, path):
+    def __init__(self, config, path, retrain=False):
         if not isinstance(config, TrainConfig):
             config = get_config(config=config)
 
@@ -24,6 +25,31 @@ class TFTrainer(object):
 
         if not os.path.exists(path):
             os.makedirs(path)
+
+        if retrain:
+            summaries_dir = os.path.join(
+                path,
+                self.config['summaries']['summaries_dir'])
+            if os.path.exists(summaries_dir):
+                shutil.rmtree(summaries_dir)
+
+            npy_checkpoints_dir = os.path.join(
+                path,
+                self.config['checkpoints']['numpy_checkpoints_dir'])
+            if os.path.exists(npy_checkpoints_dir):
+                shutil.rmtree(npy_checkpoints_dir)
+
+            tf_checkpoints_dir = os.path.join(
+                path,
+                self.config['checkpoints']['tensorflow_checkpoints_dir'])
+            if os.path.exists(tf_checkpoints_dir):
+                shutil.rmtree(tf_checkpoints_dir)
+
+            train_log_dir = os.path.join(
+                path,
+                self.config['logging']['log_path'])
+            if os.path.exists(train_log_dir):
+                os.remove(train_log_dir)
 
         self._configure_logger()
 
@@ -340,7 +366,6 @@ class TFTrainer(object):
                     os.path.join(path, 'validation'))
 
         # Restore model to last checkpoint
-        self.config['checkpoints'].get('checkpoints_dir')
         tf_ckp_dir = (self.config['checkpoints']
                           .get('tensorflow_checkpoints_dir'))
         npy_ckp_dir = (self.config['checkpoints']

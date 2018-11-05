@@ -6,7 +6,7 @@ from ..trainer.tf_trainer_config import get_config
 from ..trainer.tf_trainer import TFTrainer
 
 
-def train(path, config, project):
+def train(path, config, project, retrain=False):
     # Get training config
     train_config_file = config['configurations']['train_configs']
     paths = [
@@ -30,5 +30,8 @@ def train(path, config, project):
     loss_klass = get_class(loss_name, 'loss', project, config)
 
     train_config = get_config(paths=paths)
-    trainer = TFTrainer(train_config, path)
-    trainer.train(model=model_klass, dataset=dataset_klass, loss=loss_klass)
+    trainer = TFTrainer(train_config, path, retrain=retrain)
+    trainer.train(
+        model=model_klass,
+        dataset=dataset_klass,
+        loss=loss_klass)
