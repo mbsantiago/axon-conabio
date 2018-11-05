@@ -1,6 +1,6 @@
-1. Stop at iteration.
-2. Keep prob implementation
-3. Model summaries bug (crashes if empty)
+1. Stop at iteration. (DONE)
+2. Keep prob implementation (DONE)
+3. Model summaries bug (crashes if empty) (DONE)
 4. Regularization summaries
 5. Retrain by CLI
 6. CLI tool for new models
@@ -10,3 +10,5 @@
 10. Tqdm bar bug in tf_evaluator (should close at end)
 11. Check if model to train or evaluate exists, else return a list
 12. CLI to list all available components
+13. Check tensorflow summary size
+14. Gradient summaries names

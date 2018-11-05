@@ -226,6 +226,7 @@ class Evaluator(object):
                     extra={'phase': 'saving'})
             self._save_evaluations(evaluations)
 
+        pbar.close()
         return evaluations
 
     def _evaluate_no_tf(self, model=None, dataset=None, metrics=None):

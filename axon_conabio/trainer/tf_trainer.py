@@ -129,22 +129,39 @@ class TFTrainer(object):
 
         return train_op, total_loss, gradients_list
 
-    def _build_summary_op(self, model, loss, gradients=None, prefix=None):
+    def _build_summary_op(
+            self,
+            model,
+            loss,
+            gradients=None,
+            prefix=None,
+            reg_loss=0):
         summary_conf = self.config['summaries']
         summaries = [loss.summary_op(prefix=prefix)]
 
         model_summs = summary_conf.getboolean('model_summaries')
         var_summs = summary_conf.getboolean('variable_summaries')
         grad_summs = summary_conf.getboolean('gradient_summaries')
+        reg_summs = summary_conf.getboolean('regularization_summaries')
 
         if model_summs:
-            summaries.append(model.get_model_summaries(run_name=prefix))
+            model_summ_op = model.get_model_summaries(run_name=prefix)
+            if model_summ_op is not None:
+                summaries.append(model_summ_op)
 
         if var_summs:
-            summaries.append(model.get_variable_summaries(prefix=prefix))
+            var_summ_op = model.get_variable_summaries(prefix=prefix)
+            if model_summ_op is not None:
+                summaries.append(var_summ_op)
 
         if (grad_summs and gradients is not None):
-            summaries.append(self._aggregate_gradients_summaries(gradients))
+            grad_summ_op = self._aggregate_gradients_summaries(gradients)
+            if grad_summ_op is not None:
+                summaries.append(grad_summ_op)
+
+        if reg_summs and reg_loss != 0:
+            summaries.append(
+                tf.summary.scalar('regularization_loss', reg_loss))
 
         return tf.summary.merge(summaries)
 
@@ -269,6 +286,7 @@ class TFTrainer(object):
                 model_instance,
                 train_loss,
                 gradients=gradients,
+                reg_loss=reg_loss,
                 prefix='train')
             validation_summary_op = self._build_summary_op(
                 model_instance,
@@ -375,6 +393,8 @@ class TFTrainer(object):
                                  .getint('save_tensors_frequency'))
         checkpoints_freq = (self.config['checkpoints']
                                 .getint('checkpoints_frequency'))
+        stop_at_step = (self.config['feed']
+                            .getint('stop_at_step'))
         checkpoints = (npy_ckpts or tf_ckpts)
 
         self.logger.info(
@@ -438,6 +458,9 @@ class TFTrainer(object):
                                 npy_checkpoint_dir,
                                 step=step)
 
+                if step == stop_at_step:
+                    raise tf.errors.OutOfRangeError(None, None, "")
+
         except KeyboardInterrupt:
             msg = 'User interrupted training'
             self.logger.warning(msg, extra={'phase': 'control'})
@@ -457,7 +480,7 @@ class TFTrainer(object):
 
         except tf.errors.OutOfRangeError:
             msg = 'Dataset iterations done.'
-            self.logging.info(msg, extra={'phase': 'control'})
+            self.logger.info(msg, extra={'phase': 'control'})
 
             if step is not None:
                 if tf_ckpts:

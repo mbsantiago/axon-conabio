@@ -126,6 +126,8 @@ def summary_aggregation(summaries, prefix=None):
                 **global_kwargs)
         summaries_list.append(summary)
 
+    if len(summaries_list) == 0:
+        return None
     summary_op = tf.summary.merge(summaries_list)
     return summary_op
 
@@ -151,7 +153,7 @@ def get_checkpoints(
         npy_ckpts = sorted(
             npy_ckpts,
             key=lambda x: int(x.split('.')[0].split('_')[-1]))
-        npy_ckpt = os.path.join(npy_dir, npy_ckpts[-1])
+        npy_ckpt = os.path.abspath(os.path.join(npy_dir, npy_ckpts[-1]))
         npy_step = int(npy_ckpt.split('.')[0].split('_')[-1])
 
     if (npy_step is None and tf_step is None):

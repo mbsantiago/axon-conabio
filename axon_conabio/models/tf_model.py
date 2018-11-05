@@ -167,7 +167,7 @@ class TFModel(Model):
 
                         self._add_variables(variables)
 
-        if 'train' not in run_name:
+        if 'train' not in str(run_name):
             self.keep_prob = keep_prob_tmp
 
         self._register_tensors(run_name=run_name, sub_run=sub_run)
