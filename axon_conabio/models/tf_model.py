@@ -22,7 +22,7 @@ class TFModel(Model):
         return self._keep_prob
 
     @keep_prob.setter
-    def keep_prob(self):
+    def keep_prob(self, value):
         raise RuntimeError('Keep prob should not be directly set.')
 
     def __init__(self, graph=None, keep_prob=1):
