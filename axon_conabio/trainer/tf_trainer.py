@@ -207,7 +207,10 @@ class TFTrainer(object):
                 summaries.append(tf.summary.histogram(name, grad_list[0]))
             else:
                 mean = tf.add_n(grad_list) / len(grad_list)
-                summaries.append(tf.summary.histogram(name, mean))
+                summaries.append(
+                    tf.summary.histogram(
+                        'gradients/{name}'.format(name=name),
+                        mean))
 
         return tf.summary.merge(summaries)
 
