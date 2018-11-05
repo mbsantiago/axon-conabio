@@ -246,7 +246,8 @@ class TFTrainer(object):
         graph = tf.Graph()
 
         # Build instances of models and losses
-        model_instance = model(graph=graph)
+        keep_prob = self.config['regularization']['keep_prob']
+        model_instance = model(graph=graph, keep_prob=keep_prob)
         train_loss = loss(graph=graph)
         validation_loss = loss(graph=graph)
 
