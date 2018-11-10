@@ -2,3 +2,5 @@
 2. Copy of default config in .project dir for orientation
 3. Code backup after training
 4. Check tensorflow summary size
+5. Bug in determination if dataset is tensorflow.dataset or not (in evaluator).
+6. Evaluator initialize missing variables.

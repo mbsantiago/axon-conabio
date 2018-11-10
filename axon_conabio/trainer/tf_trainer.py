@@ -267,7 +267,7 @@ class TFTrainer(object):
 
             if validate:
                 validation_input, validation_label = (
-                    dataset_instance.iter_train(
+                    dataset_instance.iter_validation(
                         batch_size=batch_size,
                         epochs=epochs))
 

@@ -100,6 +100,7 @@ def list(type, path):
 
 
 @main.command()
+@click.argument('name', required=False)
 @click.option('--path')
 def evaluate(name, path):
     # Get current project

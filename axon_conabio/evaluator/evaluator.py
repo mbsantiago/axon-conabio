@@ -186,6 +186,7 @@ class Evaluator(object):
                 'Starting session and restoring model',
                 extra={'phase': 'construction'})
         sess = tf.Session(graph=graph)
+        sess.run(model_instance.init_op())
         model_instance.restore(
             sess, path=self._ckpt_path, mode=self._ckpt_type)
 
@@ -259,6 +260,7 @@ class Evaluator(object):
             'Starting session and restoring model',
             extra={'phase': 'construction'})
         sess = tf.Session(graph=graph)
+        sess.run(model_instance.init_op())
         model_instance.restore(
             sess, path=self._ckpt_path, mode=self._ckpt_type)
 
