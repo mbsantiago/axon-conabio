@@ -24,7 +24,6 @@ setup(
         'six',
         'click',
         'numpy',
-        'tensorflow',
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
