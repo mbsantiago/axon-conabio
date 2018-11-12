@@ -246,7 +246,7 @@ class TFTrainer(object):
         graph = tf.Graph()
 
         # Build instances of models and losses
-        keep_prob = self.config['regularization']['keep_prob']
+        keep_prob = float(self.config['regularization']['keep_prob'])
         model_instance = model(graph=graph, keep_prob=keep_prob)
         train_loss = loss(graph=graph)
         validation_loss = loss(graph=graph)
@@ -350,7 +350,8 @@ class TFTrainer(object):
         # Intialize local variables
         with graph.as_default():
             local_init = tf.local_variables_initializer()
-        sess.run(local_init)
+            tables_init = tf.tables_initializer()
+        sess.run([local_init, tables_init])
 
         # Create tensorflow summary writers
         self.logger.info(

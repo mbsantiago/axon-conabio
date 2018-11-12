@@ -186,6 +186,10 @@ class Evaluator(object):
                 'Starting session and restoring model',
                 extra={'phase': 'construction'})
         sess = tf.Session(graph=graph)
+        with graph.as_default():
+            tables_init = tf.tables_initializer()
+            local_init = tf.local_variables_initializer()
+        sess.run([tables_init, local_init])
         sess.run(model_instance.init_op())
         model_instance.restore(
             sess, path=self._ckpt_path, mode=self._ckpt_type)
@@ -260,6 +264,10 @@ class Evaluator(object):
             'Starting session and restoring model',
             extra={'phase': 'construction'})
         sess = tf.Session(graph=graph)
+        with graph.as_default():
+            tables_init = tf.tables_initializer()
+            local_init = tf.local_variables_initializer()
+        sess.run([tables_init, local_init])
         sess.run(model_instance.init_op())
         model_instance.restore(
             sess, path=self._ckpt_path, mode=self._ckpt_type)
