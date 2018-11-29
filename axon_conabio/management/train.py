@@ -20,9 +20,9 @@ def train(path, config, project, retrain=False):
         os.path.join(project, '.project', model_file),
         os.path.join(path, model_file)])
 
-    architecture_name = model_config['model']['architecture']
-    dataset_name = model_config['training']['dataset']
-    loss_name = model_config['training']['loss']
+    architecture_name = model_config['model']['architecture'].split(':')[0]
+    dataset_name = model_config['training']['dataset'].split(':')[0]
+    loss_name = model_config['training']['loss'].split(':')[0]
 
     # Read classes
     model_klass = load_object(
