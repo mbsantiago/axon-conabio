@@ -22,6 +22,11 @@ class TFModel(Model):
         return 'model'
 
     @property
+    @abstractmethod
+    def input_structure(self):
+        return {}
+
+    @property
     def keep_prob(self):
         return self._keep_prob
 
@@ -85,6 +90,10 @@ class TFModel(Model):
 
                     # Add to saveable variables
                     self.variables['global_step'] = self.global_step
+
+        # Checkpoints
+        self.ckpt_path = None
+        self.ckpt_type = 'tf'
 
     def _add_variables(self, variables):
         if not self.variables_are_set:
@@ -201,7 +210,7 @@ class TFModel(Model):
 
         self.saver.save(sess, path, **kwargs)
 
-    def restore(self, sess, path=None, mode=None):
+    def restore(self, sess, path=None, mode='tf'):
         if not self.variables_are_set:
             msg = 'Model variables have not been built yet. Restoring empty'
             msg += ' set of variables!'

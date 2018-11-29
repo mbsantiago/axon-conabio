@@ -1,11 +1,12 @@
 from abc import ABCMeta, abstractmethod
+import six
 
 
+@six.add_metaclass(ABCMeta)
 class Model(object):
-    __metaclass__ = ABCMeta
 
     @abstractmethod
-    def predict(inputs):
+    def predict(self, inputs):
         pass
 
     @abstractmethod

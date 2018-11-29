@@ -10,7 +10,7 @@ from .config import get_config
 from .utils import (
     get_base_project,
     get_model_path,
-    get_all_models)
+    get_all_objects)
 
 
 @click.group()
@@ -61,11 +61,12 @@ def train(name, path, retrain):
 
 @main.command()
 @click.argument('type', type=click.Choice([
-    'architectures',
-    'losses',
-    'metrics',
-    'models',
-    'datasets']))
+    'architecture',
+    'loss',
+    'metric',
+    'model',
+    'product',
+    'dataset']))
 @click.option('--path')
 def list(type, path):
     if path is None:
@@ -75,22 +76,11 @@ def list(type, path):
     config_path = os.path.join(
             project, '.project', 'axon_config.ini')
     config = get_config(path=config_path)
-    structure = config['structure']
 
-    if type == 'models':
-        result = os.listdir(
-            os.path.join(
-                project,
-                structure['models_dir']))
-    else:
-        type_name = type + '_dir'
-        directory = os.path.join(
-            project,
-            structure[type_name])
-        result = [
-            os.path.splitext(os.path.basename(x))[0]
-            for x in os.listdir(directory)
-            if x[-3:] == '.py']
+    result = get_all_objects(
+        type,
+        project=project,
+        config=config)
 
     msg = 'Available {}:'.format(type)
     for n, name in enumerate(result):
@@ -125,7 +115,8 @@ def evaluate(name, path):
 
     if not os.path.exists(path):
         msg = 'No model with name {name} was found. Available models: {list}'
-        model_list = ', '.join(get_all_models())
+        model_list = ', '.join(
+            get_all_objects('model', project=project, config=config))
         msg = msg.format(name=name, list=model_list)
         raise click.UsageError(msg)
 

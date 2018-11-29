@@ -1,15 +1,45 @@
 import os
 import importlib
 import sys
-import logging
 import configparser
 
 from .config import get_config
 from ..utils import get_checkpoints
 from ..trainer.tf_trainer_config import get_config as get_train_config
 
+# Classes
+from ..datasets import Dataset
+from ..losses import Loss
+from ..metrics import Metric
+from ..models import (Model, TFModel)
+from ..products import Product
 
-logger = logging.getLogger(__name__)
+
+TYPES = {
+    'dataset': {
+        'class': Dataset,
+        'dir': 'datasets_dir',
+    },
+    'loss': {
+        'class': Loss,
+        'dir': 'losses_dir',
+    },
+    'metric': {
+        'class': Metric,
+        'dir': 'metrics_dir',
+    },
+    'architecture': {
+        'class': (Model, TFModel),
+        'dir': 'architectures_dir',
+    },
+    'product': {
+        'class': Product,
+        'dir': 'products_dir',
+    },
+    'model': {
+        'dir': 'models_dir',
+    }
+}
 
 
 def get_base_project(path):
@@ -28,76 +58,30 @@ def get_base_project(path):
     return None
 
 
-def get_class(name, subtype, project, config):
-    # Get class name
-    split = name.split(':')
-    if len(split) == 1:
-        name = split[0]
-        klass_name = subtype
-    else:
-        name = split[0]
-        klass_name = split[1]
+def get_all_objects(type_, project=None, config=None):
+    if project is None:
+        project = get_base_project('.')
 
-    # Check if name is path to file
-    abspath = os.path.abspath(name)
-    if os.path.exists(abspath):
-        name, ext = os.path.splitext(abspath)
-        if ext != '.py':
-            msg = '{} is being loaded from a non-python file: {}'
-            msg = msg.format(subtype.title(), abspath)
-            raise IOError(msg)
+    if config is None:
+        # Get configuration
+        config_path = None
+        if project is not None:
+            config_path = os.path.join(
+                project, '.project', 'axon_config.ini')
+        else:
+            return []
+        config = get_config(path=config_path)
 
-        klass = extract_class(name, klass_name)
-    else:
-        if project is None:
-            msg = 'No path to {subtype} file :{file}: was given'
-            msg += ' and training is not being done inside'
-            msg += ' a project.'
-            msg = msg.format(subtype=subtype, file=name)
-            raise IOError(msg)
+    subdir = TYPES[type_]['dir']
+    objects_dir = config['structure'][subdir]
+    objects = os.listdir(os.path.join(project, objects_dir))
 
-        if subtype == 'architecture':
-            subdir = config['structure']['architectures_dir']
-        elif subtype == 'loss':
-            subdir = config['structure']['losses_dir']
-        elif subtype == 'dataset':
-            subdir = config['structure']['datasets_dir']
-        elif subtype == 'metric':
-            subdir = config['structure']['metrics_dir']
+    if type_ != 'model':
+        objects = [
+            os.path.splitext(name)[0] for name in objects
+            if name[-3:] == '.py']
 
-        path = os.path.join(project, subdir, name)
-        klass = extract_class(path, klass_name)
-
-    return klass
-
-
-def extract_class(path, name):
-    basename = os.path.basename(path)
-    abspath = os.path.dirname(os.path.abspath(path))
-    sys.path.insert(0, abspath)
-    module = importlib.import_module(basename)
-    try:
-        klass = getattr(module, name)
-    except AttributeError:
-        msg = 'Python module {} does not have a class named {}'
-        msg = msg.format(os.path.basename(path), name)
-        raise AttributeError(msg)
-    return klass
-
-
-def get_all_models():
-    project = get_base_project('.')
-
-    # Get configuration
-    config_path = None
-    if project is not None:
-        config_path = os.path.join(
-            project, '.project', 'axon_config.ini')
-    else:
-        return []
-    config = get_config(path=config_path)
-    models_dir = config['structure']['models_dir']
-    return os.listdir(models_dir)
+    return objects
 
 
 def get_model_path(name, project, config):
@@ -131,12 +115,15 @@ def load_model(name=None, path=None):
 
     architecture_name = model_config['model']['architecture']
 
+    # To handle backwards compatibility issues
+    architecture_name = architecture_name.split(':')[0]
+
     # Read classes
-    model = get_class(
+    model = load_object(
         architecture_name,
         'architecture',
-        project,
-        config)()
+        project=project,
+        config=config)()
 
     project_train_config_path = os.path.join(
         project,
@@ -145,8 +132,10 @@ def load_model(name=None, path=None):
     train_config_path = os.path.join(
         path,
         config['configurations']['train_configs'])
+
     train_config = get_train_config(
         paths=[project_train_config_path, train_config_path]).config
+
     tf_subdir = train_config['checkpoints']['tensorflow_checkpoints_dir']
     npy_subdir = train_config['checkpoints']['numpy_checkpoints_dir']
     ckpt = get_checkpoints(
@@ -160,3 +149,54 @@ def load_model(name=None, path=None):
         model.ckpt_path = ckpt_path
 
     return model
+
+
+def _extract_from_module(module, klass):
+    for obj in module.__dict__.values():
+        try:
+            if issubclass(obj, klass) and obj is not klass:
+                return obj
+        except TypeError:
+            pass
+
+
+def load_object(name, type_, project=None, config=None):
+    if project is None:
+        project = get_base_project('.')
+
+    if config is None:
+        config_path = os.path.join(
+            project, '.project', 'axon_config.ini')
+        config = get_config(path=config_path)
+
+    klass = TYPES[type_]['class']
+    subdir_name = TYPES[type_]['dir']
+    subdir = config['structure'][subdir_name]
+
+    path = os.path.abspath(os.path.join(project, subdir))
+    sys.path.insert(0, path)
+    module = importlib.import_module(name)
+    sys.path.pop()
+
+    object_ = _extract_from_module(module, klass)
+    return object_
+
+
+def load_dataset(name):
+    return load_object(name, 'dataset')
+
+
+def load_loss(name):
+    return load_object(name, 'loss')
+
+
+def load_metric(name):
+    return load_object(name, 'metric')
+
+
+def load_architecture(name):
+    return load_object(name, 'architecture')
+
+
+def load_product(name):
+    return load_object(name, 'product')

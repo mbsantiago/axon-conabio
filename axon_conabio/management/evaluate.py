@@ -1,7 +1,7 @@
 import os
 import configparser
 
-from .utils import get_class
+from .utils import load_object
 from ..evaluator.evaluator_config import get_config
 from ..evaluator.evaluator import Evaluator
 
@@ -26,12 +26,25 @@ def evaluate(path, config, project):
     metrics_name = model_config['evaluation']['metric_list'].split(',')
 
     # Read classes
-    model_klass = get_class(model_name, 'architecture', project, config)
-    dataset_klass = get_class(dataset_name, 'dataset', project, config)
+    model_klass = load_object(
+        model_name,
+        'architecture',
+        project=project,
+        config=config)
+
+    dataset_klass = load_object(
+        dataset_name,
+        'dataset',
+        project=project,
+        config=config)
 
     metrics = []
     for metric in metrics_name:
-        metrics.append(get_class(metric, 'metric', project, config))
+        metrics.append(load_object(
+            metric,
+            'metric',
+            project=project,
+            config=config))
 
     evaluator = Evaluator(eval_config, path)
     evaluator.evaluate(

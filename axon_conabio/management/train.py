@@ -1,7 +1,7 @@
 import os
 import configparser
 
-from .utils import get_class
+from .utils import load_object
 from ..trainer.tf_trainer_config import get_config
 from ..trainer.tf_trainer import TFTrainer
 
@@ -25,9 +25,23 @@ def train(path, config, project, retrain=False):
     loss_name = model_config['training']['loss']
 
     # Read classes
-    model_klass = get_class(architecture_name, 'architecture', project, config)
-    dataset_klass = get_class(dataset_name, 'dataset', project, config)
-    loss_klass = get_class(loss_name, 'loss', project, config)
+    model_klass = load_object(
+        architecture_name,
+        'architecture',
+        project=project,
+        config=config)
+
+    dataset_klass = load_object(
+        dataset_name,
+        'dataset',
+        project=project,
+        config=config)
+
+    loss_klass = load_object(
+        loss_name,
+        'loss',
+        project=project,
+        config=config)
 
     train_config = get_config(paths=paths)
     trainer = TFTrainer(train_config, path, retrain=retrain)
