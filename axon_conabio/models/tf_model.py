@@ -210,7 +210,7 @@ class TFModel(Model):
 
         self.saver.save(sess, path, **kwargs)
 
-    def restore(self, sess, path=None, mode='tf'):
+    def restore(self, sess, path=None, mode=None):
         if not self.variables_are_set:
             msg = 'Model variables have not been built yet. Restoring empty'
             msg += ' set of variables!'
