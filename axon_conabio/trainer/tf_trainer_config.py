@@ -3,6 +3,8 @@ import configparser
 
 import tensorflow as tf
 
+from ..utils import memoized
+
 
 DEFAULT_CONFIG_PATH = os.path.join(
     os.path.abspath(os.path.dirname(__file__)),
@@ -38,7 +40,7 @@ OPTIMIZERS = {
             'global_step': None,
             'initial_gradient_squared_accumulator_value': 0.1,
             'l1_regularization_strength': 0.0,
-            'l1_regularization_strength': 0.0,
+            'l2_regularization_strength': 0.0,
         },
     },
     'Momentum': {
@@ -118,6 +120,7 @@ def get_optimizer(config):
     return (factory, arguments)
 
 
+@memoized
 def get_config(paths=None, config=None):
     if paths is None:
         paths = []

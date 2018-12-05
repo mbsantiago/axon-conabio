@@ -3,8 +3,8 @@ import importlib
 import sys
 import configparser
 
-from .config import get_config
-from ..utils import get_checkpoints
+from .config import get_project_config
+from ..utils import get_checkpoints, memoized
 from ..trainer.tf_trainer_config import get_config as get_train_config
 
 # Classes
@@ -42,6 +42,7 @@ TYPES = {
 }
 
 
+@memoized
 def get_base_project(path):
     if not os.path.exists(path):
         return get_base_project('.')
@@ -64,13 +65,7 @@ def get_all_objects(type_, project=None, config=None):
 
     if config is None:
         # Get configuration
-        config_path = None
-        if project is not None:
-            config_path = os.path.join(
-                project, '.project', 'axon_config.ini')
-        else:
-            return []
-        config = get_config(path=config_path)
+        config = get_project_config(project)
 
     subdir = TYPES[type_]['dir']
     objects_dir = config['structure'][subdir]
@@ -99,9 +94,7 @@ def load_model(name=None, path=None):
     if name is None:
         name = os.path.basename(path)
 
-    config_path = os.path.join(
-        project, '.project', 'axon_config.ini')
-    config = get_config(path=config_path)
+    config = get_project_config(project)
 
     if path is None:
         path = os.path.join(
@@ -165,9 +158,7 @@ def load_object(name, type_, project=None, config=None):
         project = get_base_project('.')
 
     if config is None:
-        config_path = os.path.join(
-            project, '.project', 'axon_config.ini')
-        config = get_config(path=config_path)
+        config = get_project_config(project)
 
     klass = TYPES[type_]['class']
     subdir_name = TYPES[type_]['dir']
@@ -200,3 +191,45 @@ def load_architecture(name):
 
 def load_product(name):
     return load_object(name, 'product')
+
+
+def get_model_checkpoint(
+        model_name,
+        ckpt=None):
+    project = get_base_project('.')
+    config = get_project_config(project)
+
+    model_directory = os.path.join(
+        project,
+        config['structure']['models_dir'],
+        model_name)
+
+    if not os.path.exists(model_directory):
+        msg = 'Model {} does not exists. Available models: {}'
+        msg = msg.format(
+            model_name,
+            get_all_objects('model', config=config, project=project))
+        raise IOError(msg)
+
+    train_config = get_train_config(paths=[
+        os.path.join(project, '.project', 'train.ini'),
+        os.path.join(model_directory, 'train.ini')
+    ])
+
+    tf_subdir = train_config['checkpoints']['tensorflow_checkpoints_dir']
+    npy_subdir = train_config['checkpoints']['numpy_checkpoints_dir']
+
+    tf_dir = os.path.join(model_directory, tf_subdir)
+    npy_dir = os.path.join(model_directory, npy_subdir)
+
+    tf_ckpts = [
+        x for x in os.listdir(tf_dir)
+        if x[-6:] == '.index']
+
+    npy_ckpts = [
+        x for x in os.listdir(npy_dir)
+        if x[-4:] == '.npz']
+
+    if (not tf_ckpts) and (not npy_ckpts):
+        msg = 'No checkpoints for model {} where found.'
+        raise RuntimeError(msg.format(model_name))

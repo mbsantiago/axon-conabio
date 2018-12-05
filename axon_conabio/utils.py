@@ -1,5 +1,7 @@
 from contextlib import contextmanager
 import os
+import collections
+import functools
 
 import tensorflow as tf
 
@@ -35,7 +37,7 @@ TF_DTYPES = {
 def collection_scope(func, storage):
     def wrapper(*args, **kwargs):
         # All summary operations have name of summary as first argument. Should
-        # this change, this might brake the code.
+        # this change, this might break the code.
         name = args[0]
         func_name = func.__name__
         key = (name, func_name)
@@ -56,20 +58,20 @@ def summary_scope(storage):
 
     # Replace tensorflow summary operations with custom decorator
     tf.summary.image = collection_scope(
-            tf.summary.image,
-            storage)
+        tf.summary.image,
+        storage)
     tf.summary.scalar = collection_scope(
-            tf.summary.scalar,
-            storage)
+        tf.summary.scalar,
+        storage)
     tf.summary.audio = collection_scope(
-            tf.summary.audio,
-            storage)
+        tf.summary.audio,
+        storage)
     tf.summary.histogram = collection_scope(
-            tf.summary.histogram,
-            storage)
+        tf.summary.histogram,
+        storage)
     tf.summary.tensor_summary = collection_scope(
-            tf.summary.tensor_summary,
-            storage)
+        tf.summary.tensor_summary,
+        storage)
 
     yield
 
@@ -101,7 +103,7 @@ def summary_aggregation(summaries, prefix=None):
         global_arguments = summaries[key][0][1][2:]
         global_kwargs = summaries[key][0][2]
 
-        for func, args, kwargs in summaries[key]:
+        for _, args, _ in summaries[key]:
             # Tensor argument is always the second argument in
             # tensorflow summary functions. Should this change this
             # part of the code may break.
@@ -118,15 +120,15 @@ def summary_aggregation(summaries, prefix=None):
 
         # Add first two arguments to arguments list
         global_arguments = (
-                [name, aggregated_tensors] +
-                list(global_arguments))
+            [name, aggregated_tensors] +
+            list(global_arguments))
 
         summary = summary_function(
-                *global_arguments,
-                **global_kwargs)
+            *global_arguments,
+            **global_kwargs)
         summaries_list.append(summary)
 
-    if len(summaries_list) == 0:
+    if not summaries_list:
         return None
     summary_op = tf.summary.merge(summaries_list)
     return summary_op
@@ -149,7 +151,8 @@ def get_checkpoints(
     npy_ckpts = [
         x for x in os.listdir(npy_dir)
         if x[-4:] == '.npz']
-    if len(npy_ckpts) > 0:
+
+    if npy_ckpts:
         npy_ckpts = sorted(
             npy_ckpts,
             key=lambda x: int(x.split('.')[0].split('_')[-1]))
@@ -167,5 +170,36 @@ def get_checkpoints(
 
     if npy_step >= tf_step:
         return 'numpy', npy_ckpt, npy_step
-    else:
-        return 'tf', tf_ckpt, tf_step
+
+    return 'tf', tf_ckpt, tf_step
+
+
+class memoized(object):
+    '''Decorator. Caches a function's return value each time it is called.
+    If called later with the same arguments, the cached value is returned
+    (not reevaluated).
+    '''
+    def __init__(self, func):
+        self.func = func
+        self.cache = {}
+
+    def __call__(self, *args):
+        if not isinstance(args, collections.Hashable):
+            # uncacheable. a list, for instance.
+            # better to not cache than blow up.
+            return self.func(*args)
+
+        if args in self.cache:
+            return self.cache[args]
+
+        value = self.func(*args)
+        self.cache[args] = value
+        return value
+
+    def __repr__(self):
+        '''Return the function's docstring.'''
+        return self.func.__doc__
+
+    def __get__(self, obj, objtype):
+        '''Support instance methods.'''
+        return functools.partial(self.__call__, obj)
