@@ -90,12 +90,14 @@ def get_model_path(name, project, config):
     return os.path.join(project, models_dir, name)
 
 
-def load_model(name=None, path=None):
+def load_model(name=None, path=None, ckpt=None):
     if (name is None) and (path is None):
         raise ValueError('Name or path must be supplied')
 
     if path is None:
         project = get_base_project('.')
+    else:
+        project = get_base_project(path)
 
     if name is None:
         name = os.path.basename(path)
@@ -132,28 +134,16 @@ def load_model(name=None, path=None):
         project=project,
         config=config)()
 
-    project_train_config_path = os.path.join(
-        project,
-        '.project',
-        config['configurations']['train_configs'])
-    train_config_path = os.path.join(
-        path,
-        config['configurations']['train_configs'])
+    try:
+        ckpt_type, ckpt_path = get_model_checkpoint(
+            name,
+            ckpt=ckpt)
 
-    train_config = get_train_config(
-        paths=[project_train_config_path, train_config_path]).config
-
-    tf_subdir = train_config['checkpoints']['tensorflow_checkpoints_dir']
-    npy_subdir = train_config['checkpoints']['numpy_checkpoints_dir']
-    ckpt = get_checkpoints(
-        path,
-        tf_subdir=tf_subdir,
-        npy_subdir=npy_subdir)
-
-    if ckpt is not None:
-        ckpt_type, ckpt_path, ckpt = ckpt
         model.ckpt_type = ckpt_type
         model.ckpt_path = ckpt_path
+
+    except RuntimeError:
+        pass
 
     return model
 
