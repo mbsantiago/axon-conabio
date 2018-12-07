@@ -294,13 +294,19 @@ def get_model_checkpoint(
     tf_ckpt = tf_ckpts[index] if tf_ckpts else None
     npy_ckpt = npy_ckpts[index] if npy_ckpts else None
 
+    print('1:: tf_ckpt: {}, npy_ckpt: {}'.format(tf_ckpt, npy_ckpt))
+
     if tf_ckpt is None:
         ckpt_type = 'npy'
         ckpt_name = npy_ckpt
 
+        print('2:: No tensorflow ckpts, numpy ckpt: {}'.format(ckpt_name))
+
     elif npy_ckpt is None:
         ckpt_type = 'tf'
         ckpt_name = tf_ckpt
+
+        print('2:: No numpy ckpts, tensorflow ckpt: {}'.format(ckpt_name))
 
     else:
         tf_ckpt_nmbr = int(tf_ckpt.split('.')[0].split('-')[1])
@@ -327,7 +333,7 @@ def get_model_checkpoint(
     else:
         subdir = tf_subdir
 
-    print('model_directory: {}, subdir: {}, ckpt_name: {}'.format(model_directory, subdir, ckpt_name))
+    print('3:: model_directory: {}, subdir: {}, ckpt_name: {}'.format(model_directory, subdir, ckpt_name))
 
     ckpt_path = os.path.join(model_directory, subdir, ckpt_name)
     return ckpt_type, ckpt_path
