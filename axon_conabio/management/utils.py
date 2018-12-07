@@ -13,6 +13,7 @@ from ..losses import Loss
 from ..metrics import Metric
 from ..models import (Model, TFModel)
 from ..products import Product
+from ..preproccessors import Preprocessor
 
 
 TYPES = {
@@ -38,6 +39,10 @@ TYPES = {
     },
     'model': {
         'dir': 'models_dir',
+    },
+    'preprocessor': {
+        'class': Preprocessor,
+        'dir': 'preprocessors_dir',
     }
 }
 
@@ -177,20 +182,48 @@ def load_dataset(name):
     return load_object(name, 'dataset')
 
 
+def list_datasets():
+    return get_all_objects('dataset')
+
+
 def load_loss(name):
     return load_object(name, 'loss')
+
+
+def list_losses():
+    return get_all_objects('loss')
 
 
 def load_metric(name):
     return load_object(name, 'metric')
 
 
+def list_metrics():
+    return get_all_objects('metric')
+
+
 def load_architecture(name):
     return load_object(name, 'architecture')
 
 
+def list_architectures():
+    return get_all_objects('architecture')
+
+
 def load_product(name):
     return load_object(name, 'product')
+
+
+def list_products():
+    return get_all_objects('product')
+
+
+def load_preprocessor(name):
+    return load_object(name, 'preprocessor')
+
+
+def list_preprocessors():
+    return get_all_objects('preprocessor')
 
 
 def get_model_checkpoint(
@@ -233,3 +266,57 @@ def get_model_checkpoint(
     if (not tf_ckpts) and (not npy_ckpts):
         msg = 'No checkpoints for model {} where found.'
         raise RuntimeError(msg.format(model_name))
+
+    if ckpt is None:
+        ckpt = 0
+        index = -1
+    else:
+        index = 0
+
+    # Order checkpoints by closeness to desired checkpoint number
+    tf_ckpts = sorted(
+        tf_ckpts,
+        key=lambda x: abs(ckpt - int(x.split('.')[0].split('-')[1])))
+
+    npy_ckpts = sorted(
+        tf_ckpts,
+        key=lambda x: abs(ckpt - int(x.split('.')[0].split('_')[2])))
+
+    tf_ckpt = tf_ckpts[index] if tf_ckpts else None
+    npy_ckpt = npy_ckpts[index] if npy_ckpts else None
+
+    if tf_ckpt is None:
+        ckpt_type = 'npy'
+        ckpt_name = npy_ckpt
+
+    elif npy_ckpt is None:
+        ckpt_type = 'tf'
+        ckpt_name = tf_ckpt
+
+    else:
+        tf_ckpt_nmbr = int(tf_ckpt.split('.')[0].split('-')[1])
+        npy_ckpt_nmbr = int(npy_ckpt.split('.')[0].split('_')[2])
+
+        if index == -1:
+            if tf_ckpt_nmbr > npy_ckpt_nmbr:
+                ckpt_type = 'tf'
+                ckpt_name = tf_ckpt
+            else:
+                ckpt_type = 'npy'
+                ckpt_name = npy_ckpt
+
+        else:
+            if abs(ckpt - tf_ckpt_nmbr) < abs(ckpt - npy_ckpt_nmbr):
+                ckpt_type = 'tf'
+                ckpt_name = tf_ckpt
+            else:
+                ckpt_type = 'npy'
+                ckpt_name = npy_ckpt
+
+    if ckpt_type == 'npy':
+        subdir = npy_subdir
+    else:
+        subdir = tf_subdir
+
+    ckpt_path = os.path.join(model_directory, subdir, ckpt_name)
+    return ckpt_type, ckpt_path
