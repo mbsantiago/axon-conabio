@@ -13,7 +13,7 @@ from ..losses import Loss
 from ..metrics import Metric
 from ..models import (Model, TFModel)
 from ..products import Product
-from ..preproccessors import Preprocessor
+from ..preprocessors import Preprocessor
 
 
 TYPES = {
