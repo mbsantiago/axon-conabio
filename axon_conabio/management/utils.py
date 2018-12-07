@@ -171,7 +171,7 @@ def _extract_from_module(module, klass):
 def dir_in_path(dirpath):
     sys.path.insert(0, dirpath)
     yield
-    sys.path.pop()
+    sys.path.pop(0)
 
 
 def load_object(name, type_, project=None, config=None):
