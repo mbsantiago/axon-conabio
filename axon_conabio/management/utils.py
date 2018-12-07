@@ -258,8 +258,8 @@ def get_model_checkpoint(
         os.path.join(model_directory, 'train.ini')
     ])
 
-    tf_subdir = train_config['checkpoints']['tensorflow_checkpoints_dir']
-    npy_subdir = train_config['checkpoints']['numpy_checkpoints_dir']
+    tf_subdir = train_config.config['checkpoints']['tensorflow_checkpoints_dir']
+    npy_subdir = train_config.config['checkpoints']['numpy_checkpoints_dir']
 
     tf_dir = os.path.join(model_directory, tf_subdir)
     npy_dir = os.path.join(model_directory, npy_subdir)
