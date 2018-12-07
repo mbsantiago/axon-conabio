@@ -288,7 +288,7 @@ def get_model_checkpoint(
         key=lambda x: abs(ckpt - int(x.split('.')[0].split('-')[1])))
 
     npy_ckpts = sorted(
-        tf_ckpts,
+        npy_ckpts,
         key=lambda x: abs(ckpt - int(x.split('.')[0].split('_')[2])))
 
     tf_ckpt = tf_ckpts[index] if tf_ckpts else None
