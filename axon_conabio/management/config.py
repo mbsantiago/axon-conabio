@@ -10,7 +10,7 @@ DEFAULT_CONFIG_PATH = os.path.join(
 
 
 @memoized
-def get_config(path):
+def get_config(path=None):
     paths = [DEFAULT_CONFIG_PATH]
     if path is not None:
         paths.append(path)

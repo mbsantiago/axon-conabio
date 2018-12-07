@@ -183,17 +183,24 @@ class memoized(object):
         self.func = func
         self.cache = {}
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         if not isinstance(args, collections.Hashable):
             # uncacheable. a list, for instance.
             # better to not cache than blow up.
-            return self.func(*args)
+            return self.func(*args, **kwargs)
 
-        if args in self.cache:
-            return self.cache[args]
+        try:
+            frozen_kwargs = frozenset(kwargs)
+        except ValueError:
+            return self.func(*args, **kwargs)
 
-        value = self.func(*args)
-        self.cache[args] = value
+        key = (args, frozen_kwargs)
+
+        if key in self.cache:
+            return self.cache[key]
+
+        value = self.func(*args, **kwargs)
+        self.cache[key] = value
         return value
 
     def __repr__(self):
