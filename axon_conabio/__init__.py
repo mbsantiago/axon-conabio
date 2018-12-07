@@ -8,13 +8,13 @@ from .management.utils import (
     load_preprocessor)
 
 from .management.utils import (
-    list_model,
-    list_dataset,
-    list_loss,
-    list_metric,
-    list_architecture,
-    list_product,
-    list_preprocessor)
+    list_models,
+    list_datasets,
+    list_losses,
+    list_metrics,
+    list_architectures,
+    list_products,
+    list_preprocessors)
 
 from .management.utils import (
     get_model_checkpoint)

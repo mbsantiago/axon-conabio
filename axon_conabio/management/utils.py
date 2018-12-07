@@ -226,6 +226,10 @@ def list_preprocessors():
     return get_all_objects('preprocessor')
 
 
+def list_models():
+    return get_all_objects('model')
+
+
 def get_model_checkpoint(
         model_name,
         ckpt=None):
