@@ -106,6 +106,14 @@ def load_model(name=None, path=None):
             project, config['structure']['models_dir'], name)
 
     model_file = config['configurations']['model_specs']
+
+    if not os.path.exists(os.path.join(path, model_file)):
+        msg = 'Model {} does not exists. Available models: {}'
+        msg = msg.format(
+            os.path.basename(path),
+            list_models())
+        raise IOError(msg)
+
     model_config = configparser.ConfigParser()
     model_config.read([
         os.path.join(project, '.project', model_file),
