@@ -2,6 +2,7 @@ import os
 import importlib
 import sys
 import configparser
+from contextlib import contextmanager
 
 from .config import get_project_config
 from ..utils import get_checkpoints, memoized
@@ -166,6 +167,13 @@ def _extract_from_module(module, klass):
             pass
 
 
+@contextmanager
+def dir_in_path(dirpath):
+    sys.path.insert(0, dirpath)
+    yield
+    sys.path.pop()
+
+
 def load_object(name, type_, project=None, config=None):
     if project is None:
         project = get_base_project('.')
@@ -178,9 +186,8 @@ def load_object(name, type_, project=None, config=None):
     subdir = config['structure'][subdir_name]
 
     path = os.path.abspath(os.path.join(project, subdir))
-    sys.path.insert(0, path)
-    module = importlib.import_module(name)
-    sys.path.pop()
+    with dir_in_path(path):
+        module = importlib.import_module(name)
 
     object_ = _extract_from_module(module, klass)
     return object_
