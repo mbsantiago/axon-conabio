@@ -111,7 +111,7 @@ def load_model(name=None, path=None):
         msg = 'Model {} does not exists. Available models: {}'
         msg = msg.format(
             os.path.basename(path),
-            list_models())
+            ' '.join(list_models()))
         raise IOError(msg)
 
     model_config = configparser.ConfigParser()
