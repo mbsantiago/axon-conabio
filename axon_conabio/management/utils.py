@@ -327,5 +327,7 @@ def get_model_checkpoint(
     else:
         subdir = tf_subdir
 
+    print('model_directory: {}, subdir: {}, ckpt_name: {}'.format(model_directory, subdir, cpkt_name))
+
     ckpt_path = os.path.join(model_directory, subdir, ckpt_name)
     return ckpt_type, ckpt_path
