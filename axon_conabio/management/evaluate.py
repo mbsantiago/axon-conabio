@@ -6,7 +6,7 @@ from ..evaluator.evaluator_config import get_config
 from ..evaluator.evaluator import Evaluator
 
 
-def evaluate(path, config, project):
+def evaluate(path, config, project, ckpt):
     # Get training config
     evaluate_conf_file = config['configurations']['evaluator_config']
     paths = [
@@ -38,7 +38,7 @@ def evaluate(path, config, project):
             model_config['evaluation'][dataset]['metric_list']
             for dataset in datasets_name]
 
-    evaluator = Evaluator(eval_config, path)
+    evaluator = Evaluator(eval_config, path, ckpt=ckpt)
     for dataset, metric_list in zip(datasets_name, metrics):
 
         try:

@@ -92,7 +92,8 @@ def list(type, path):
 @main.command()
 @click.argument('name', required=False)
 @click.option('--path')
-def evaluate(name, path):
+@click.option('--ckpt', type=int)
+def evaluate(name, path, ckpt):
     # Get current project
     if name is not None:
         project = get_base_project('.')
@@ -120,7 +121,7 @@ def evaluate(name, path):
         msg = msg.format(name=name, list=model_list)
         raise click.UsageError(msg)
 
-    ev(path, config, project)
+    ev(path, config, project, ckpt)
 
 
 @main.command()
