@@ -12,7 +12,7 @@ from ..datasets.basedataset import Dataset
 from ..models.basemodel import Model
 from ..metrics.basemetrics import Metric
 from ..management.utils import get_model_checkpoint
-from ..utils import TF_DTYPES, get_checkpoints
+from ..utils import TF_DTYPES
 
 
 class Evaluator(object):
@@ -27,17 +27,15 @@ class Evaluator(object):
             path, ckpt_dir)
 
         # Check if model checkpoint exists
-        print(os.path.basename(path))
         try:
             ckpt_type, ckpt_path, ckpt_step = get_model_checkpoint(
                 os.path.basename(path), ckpt=ckpt)
 
-            ckpt_type, ckpt_path, ckpt_step = ckpt
             self._ckpt_type = ckpt_type
             self._ckpt_path = ckpt_path
             self._ckpt_step = ckpt_step
-        except Exception as e:
-            print(e)
+
+        except (IOError, RuntimeError):
             self.logger.warning(
                 'No checkpoint was found',
                 extra={'phase': 'construction'})
