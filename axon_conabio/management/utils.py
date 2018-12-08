@@ -165,6 +165,9 @@ def dir_in_path(dirpath):
 
 
 def load_object(name, type_, project=None, config=None):
+    # Backwards compatibility
+    name = name.split(':')[0]
+
     if project is None:
         project = get_base_project('.')
 
