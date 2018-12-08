@@ -35,11 +35,11 @@ class Evaluator(object):
             self._ckpt_type = ckpt_type
             self._ckpt_path = ckpt_path
             self._ckpt_step = ckpt_step
-        except:
+        except Exception as e:
+            print(e)
             self.logger.warning(
                 'No checkpoint was found',
                 extra={'phase': 'construction'})
-            return None
 
         evals_dir = config['evaluations']['evaluations_dir']
         self.evaluations_dir = os.path.join(path, evals_dir)
