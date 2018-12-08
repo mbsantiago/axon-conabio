@@ -297,7 +297,7 @@ class Evaluator(object):
 
         return evaluations
 
-    def evaluate(self, model=None, dataset=None, metrics=None):
+    def evaluate(self, model=None, dataset=None, metrics=None, name=None):
         assert issubclass(dataset, Dataset)
 
         # Check if dataset is a tf dataset
@@ -310,12 +310,12 @@ class Evaluator(object):
                 'Tensorflow dataset detected.',
                 extra={'phase': 'construction'})
             evaluations = self._evaluate_tf(
-                model=model, dataset=dataset, metrics=metrics)
+                model=model, dataset=dataset, metrics=metrics, name=name)
         else:
             self.logger.info(
                 'Iterable dataset detected.',
                 extra={'phase': 'construction'})
             evaluations = self._evaluate_no_tf(
-                model=model, dataset=dataset, metrics=metrics)
+                model=model, dataset=dataset, metrics=metrics, name=name)
 
         return evaluations
