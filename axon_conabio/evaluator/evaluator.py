@@ -28,6 +28,7 @@ class Evaluator(object):
 
         # Check if model checkpoint exists
         try:
+            print('path', path)
             ckpt_type, ckpt_path, ckpt_step = get_model_checkpoint(
                 os.path.basename(path), ckpt=ckpt)
 

@@ -117,8 +117,6 @@ def evaluate(name, path, ckpt):
     if name is not None:
         path = get_model_path(name, project, config)
 
-    print('path', path)
-
     if not os.path.exists(path):
         msg = 'No model with name {name} was found. Available models: {list}'
         model_list = ', '.join(
