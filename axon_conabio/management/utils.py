@@ -67,7 +67,7 @@ def get_base_project(path):
 
 def get_all_objects(type_, project=None, config=None):
     if project is None:
-        project = get_base_project('.')
+        project = get_base_project(os.path.abspath('.') + '/')
 
     if config is None:
         # Get configuration
@@ -95,7 +95,7 @@ def load_model(name=None, path=None, ckpt=None):
         raise ValueError('Name or path must be supplied')
 
     if path is None:
-        project = get_base_project('.')
+        project = get_base_project(os.path.abspath('.') + '/')
     else:
         project = get_base_project(path)
 
@@ -172,7 +172,7 @@ def load_object(name, type_, project=None, config=None):
     name = name.split(':')[0]
 
     if project is None:
-        project = get_base_project('.')
+        project = get_base_project(os.path.abspath('.') + '/')
 
     if config is None:
         config = get_project_config(project)
@@ -244,7 +244,7 @@ def list_models():
 def get_model_checkpoint(
         model_name,
         ckpt=None):
-    project = get_base_project(os.path.abspath('.'))
+    project = get_base_project(os.path.abspath('.') + '/')
     config = get_project_config(project)
 
     model_directory = os.path.join(
