@@ -32,7 +32,7 @@ def train(name, path, retrain):
 
     # Get current project
     if name is not None:
-        project = get_base_project('.')
+        project = get_base_project(os.path.abspath('./'))
     elif path is not None:
         project = get_base_project(path)
     else:
@@ -96,11 +96,8 @@ def list(type, path):
 def evaluate(name, path, ckpt):
     # Get current project
     if name is not None:
-        print('name', name)
-        print('path', os.path.abspath('.'))
-        project = get_base_project(os.path.abspath('.'))
+        project = get_base_project(os.path.abspath('./'))
     elif path is not None:
-        print('path', path)
         project = get_base_project(path)
     else:
         msg = 'Name of model or path to model must be supplied'
