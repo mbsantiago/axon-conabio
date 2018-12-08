@@ -298,7 +298,7 @@ class Evaluator(object):
         if os.path.exists(filepath):
             msg = 'An evaluation file at step {} already exists. Skipping.'
             msg = msg.format(self._ckpt_step)
-            self.logger.warning(msg)
+            self.logger.warning(msg, extra={'phase': 'evaluation'})
             return []
 
         assert issubclass(dataset, Dataset)
