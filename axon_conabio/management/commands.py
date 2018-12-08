@@ -103,6 +103,11 @@ def evaluate(name, path, ckpt):
         msg = 'Name of model or path to model must be supplied'
         raise click.UsageError(msg)
 
+    if project is None:
+        msg = 'You (or the target directory) are not inside an'
+        msg += ' axon project!'
+        raise click.UsageError(msg)
+
     # Get configuration
     config_path = None
     if project is not None:
