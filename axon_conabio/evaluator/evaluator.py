@@ -11,11 +11,12 @@ import tensorflow as tf
 from ..datasets.basedataset import Dataset
 from ..models.basemodel import Model
 from ..metrics.basemetrics import Metric
+from ..management.utils import get_model_checkpoint
 from ..utils import TF_DTYPES, get_checkpoints
 
 
 class Evaluator(object):
-    def __init__(self, config, path):
+    def __init__(self, config, path, ckpt=None):
         self.config = config
         self.path = path
 
@@ -26,33 +27,25 @@ class Evaluator(object):
             path, ckpt_dir)
 
         # Check if model checkpoint exists
-        ckpt = get_checkpoints(self.checkpoints_dir)
-        if ckpt is None:
-            self.logger.warning(
-                'No checkpoint was found',
-                extra={'phase': 'construction'})
-            return None
-        else:
+        try:
+            ckpt_type, ckpt_path, ckpt_step = get_model_checkpoint(
+                os.path.basename(path), ckpt=ckpt)
+
             ckpt_type, ckpt_path, ckpt_step = ckpt
             self._ckpt_type = ckpt_type
             self._ckpt_path = ckpt_path
             self._ckpt_step = ckpt_step
+        except:
+            self.logger.warning(
+                'No checkpoint was found',
+                extra={'phase': 'construction'})
+            return None
 
         evals_dir = config['evaluations']['evaluations_dir']
         self.evaluations_dir = os.path.join(path, evals_dir)
 
         if not os.path.exists(self.evaluations_dir):
             os.makedirs(self.evaluations_dir)
-
-        fmt = self.config['evaluations']['results_format']
-        filepath = os.path.join(
-            self.evaluations_dir,
-            'evaluation_step_{}.{}'.format(self._ckpt_step, fmt))
-
-        if os.path.exists(filepath):
-            msg = 'An evaluation file at step {} already exists.'
-            msg = msg.format(self._ckpt_step)
-            raise ValueError(msg)
 
     def _configure_logger(self):
         logger = logging.getLogger(__name__)
@@ -298,6 +291,17 @@ class Evaluator(object):
         return evaluations
 
     def evaluate(self, model=None, dataset=None, metrics=None, name=None):
+        fmt = self.config['evaluations']['results_format']
+        filepath = os.path.join(
+            self.evaluations_dir,
+            'evaluation_{}_step_{}.{}'.format(name, self._ckpt_step, fmt))
+
+        if os.path.exists(filepath):
+            msg = 'An evaluation file at step {} already exists. Skipping.'
+            msg = msg.format(self._ckpt_step)
+            self.logger.warning(msg)
+            return []
+
         assert issubclass(dataset, Dataset)
 
         # Check if dataset is a tf dataset

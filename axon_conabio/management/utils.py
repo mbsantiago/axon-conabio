@@ -135,7 +135,7 @@ def load_model(name=None, path=None, ckpt=None):
         config=config)()
 
     try:
-        ckpt_type, ckpt_path = get_model_checkpoint(
+        ckpt_type, ckpt_path, _ = get_model_checkpoint(
             name,
             ckpt=ckpt)
 
@@ -303,10 +303,12 @@ def get_model_checkpoint(
     if tf_ckpt is None:
         ckpt_type = 'npy'
         ckpt_name = npy_ckpt
+        ckpt_step = int(npy_ckpt.split('.')[0].split('_')[2])
 
     elif npy_ckpt is None:
         ckpt_type = 'tf'
         ckpt_name = tf_ckpt
+        ckpt_step = int(tf_ckpt.split('.')[0].split('-')[1])
 
     else:
         tf_ckpt_nmbr = int(tf_ckpt.split('.')[0].split('-')[1])
@@ -316,17 +318,21 @@ def get_model_checkpoint(
             if tf_ckpt_nmbr > npy_ckpt_nmbr:
                 ckpt_type = 'tf'
                 ckpt_name = tf_ckpt
+                ckpt_step = tf_ckpt_nmbr
             else:
                 ckpt_type = 'npy'
                 ckpt_name = npy_ckpt
+                ckpt_step = npy_ckpt_nmbr
 
         else:
             if abs(ckpt - tf_ckpt_nmbr) < abs(ckpt - npy_ckpt_nmbr):
                 ckpt_type = 'tf'
                 ckpt_name = tf_ckpt
+                ckpt_step = tf_ckpt_nmbr
             else:
                 ckpt_type = 'npy'
                 ckpt_name = npy_ckpt
+                ckpt_step = npy_ckpt_nmbr
 
     if ckpt_type == 'npy':
         subdir = npy_subdir
@@ -334,4 +340,4 @@ def get_model_checkpoint(
         subdir = tf_subdir
 
     ckpt_path = os.path.join(model_directory, subdir, ckpt_name)
-    return ckpt_type, ckpt_path
+    return ckpt_type, ckpt_path, ckpt_step
