@@ -154,7 +154,7 @@ def _extract_from_module(module, klass):
 
     for obj in module.__dict__.values():
         try:
-            if issubclass(obj, klass) and obj not in klass:
+            if issubclass(obj, klass) and obj not in list(klass):
                 return obj
         except TypeError:
             pass
