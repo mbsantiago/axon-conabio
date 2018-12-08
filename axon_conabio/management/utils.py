@@ -11,7 +11,7 @@ from ..trainer.tf_trainer_config import get_config as get_train_config
 # Classes
 from ..datasets import Dataset
 from ..losses import Loss
-from ..metrics import Metric
+from ..metrics import (Metric, MetricBundle, ThresholdedMetric)
 from ..models import (Model, TFModel)
 from ..products import Product
 from ..preprocessors import Preprocessor
@@ -149,9 +149,12 @@ def load_model(name=None, path=None, ckpt=None):
 
 
 def _extract_from_module(module, klass):
+    if not isinstance(klass, (tuple, list)):
+        klass = (klass, )
+
     for obj in module.__dict__.values():
         try:
-            if issubclass(obj, klass) and obj is not klass:
+            if issubclass(obj, klass) and obj not in klass:
                 return obj
         except TypeError:
             pass
