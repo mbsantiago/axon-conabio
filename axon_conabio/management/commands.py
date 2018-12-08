@@ -96,8 +96,10 @@ def list(type, path):
 def evaluate(name, path, ckpt):
     # Get current project
     if name is not None:
+        print('name', name)
         project = get_base_project(os.path.abspath('.'))
     elif path is not None:
+        print('path', path)
         project = get_base_project(path)
     else:
         msg = 'Name of model or path to model must be supplied'
