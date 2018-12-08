@@ -27,7 +27,7 @@ TYPES = {
         'dir': 'losses_dir',
     },
     'metric': {
-        'class': Metric,
+        'class': (Metric, MetricBundle, ThresholdedMetric),
         'dir': 'metrics_dir',
     },
     'architecture': {
@@ -155,8 +155,6 @@ def _extract_from_module(module, klass):
     for obj in module.__dict__.values():
         try:
             if issubclass(obj, klass) and obj not in list(klass):
-                print(klass)
-                print(obj)
                 return obj
         except TypeError:
             pass
