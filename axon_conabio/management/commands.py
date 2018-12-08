@@ -32,7 +32,7 @@ def train(name, path, retrain):
 
     # Get current project
     if name is not None:
-        project = get_base_project(os.path.abspath('./'))
+        project = get_base_project(os.path.abspath('.') + '/')
     elif path is not None:
         project = get_base_project(path)
     else:
@@ -52,7 +52,7 @@ def train(name, path, retrain):
 
     if not os.path.exists(path):
         msg = 'No model with name {name} was found. Available models: {list}'
-        model_list = ', '.join(get_all_models())
+        model_list = ', '.join(get_all_objects('model'))
         msg = msg.format(name=name, list=model_list)
         raise click.UsageError(msg)
 
@@ -96,7 +96,7 @@ def list(type, path):
 def evaluate(name, path, ckpt):
     # Get current project
     if name is not None:
-        project = get_base_project(os.path.abspath('./'))
+        project = get_base_project(os.path.abspath('.') + '/')
     elif path is not None:
         project = get_base_project(path)
     else:
