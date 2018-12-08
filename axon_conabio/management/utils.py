@@ -244,7 +244,7 @@ def list_models():
 def get_model_checkpoint(
         model_name,
         ckpt=None):
-    project = get_base_project('.')
+    project = get_base_project(os.path.abspath('.'))
     config = get_project_config(project)
 
     model_directory = os.path.join(
