@@ -22,32 +22,46 @@ def evaluate(path, config, project):
         os.path.join(path, model_file)])
 
     model_name = model_config['model']['architecture']
-    dataset_name = model_config['evaluation']['dataset']
-    metrics_name = model_config['evaluation']['metric_list'].split(',')
-
-    # Read classes
     model_klass = load_object(
         model_name,
         'architecture',
         project=project,
         config=config)
 
-    dataset_klass = load_object(
-        dataset_name,
-        'dataset',
-        project=project,
-        config=config)
+    datasets_name = model_config['evaluation']['dataset'].split(',')
 
-    metrics = []
-    for metric in metrics_name:
-        metrics.append(load_object(
-            metric,
-            'metric',
-            project=project,
-            config=config))
+    if len(datasets_name) == 1 and 'metric_list' in model_config['evaluation']:
+        metrics = [model_config['evaluation']['metric_list'].split(',')]
+
+    else:
+        metrics = [
+            model_config['evaluation'][dataset]['metric_list']
+            for dataset in datasets_name]
 
     evaluator = Evaluator(eval_config, path)
-    evaluator.evaluate(
-        model=model_klass,
-        dataset=dataset_klass,
-        metrics=metrics)
+    for dataset, metric_list in zip(datasets_name, metrics):
+
+        try:
+            name = model_config['evaluation'][dataset]['name']
+        except:
+            name = dataset
+
+        dataset_klass = load_object(
+            dataset,
+            'dataset',
+            project=project,
+            config=config)
+
+        metrics = [
+            load_object(
+                metric,
+                'metric',
+                project=project,
+                config=config)
+            for metric in metric_list]
+
+        evaluator.evaluate(
+            model=model_klass,
+            dataset=dataset_klass,
+            metrics=metrics,
+            name=name)

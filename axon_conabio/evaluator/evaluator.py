@@ -134,10 +134,10 @@ class Evaluator(object):
 
         return feed_dict
 
-    def _save_evaluations(self, evaluations):
+    def _save_evaluations(self, evaluations, name=''):
         path = os.path.join(
             self.evaluations_dir,
-            'evaluation_step_{}'.format(self._ckpt_step))
+            'evaluation_{}_step_{}'.format(name, self._ckpt_step))
 
         file_format = self.config['evaluations']['results_format']
         if file_format == 'json':
@@ -153,7 +153,7 @@ class Evaluator(object):
                 for row in evaluations:
                     writer.writerow(row)
 
-    def _evaluate_tf(self, model=None, dataset=None, metrics=None):
+    def _evaluate_tf(self, model=None, dataset=None, metrics=None, name=None):
         # Check for correct types
         assert issubclass(model, Model)
         assert issubclass(dataset, Dataset)
@@ -227,12 +227,12 @@ class Evaluator(object):
             self.logger.info(
                     'Saving results',
                     extra={'phase': 'saving'})
-            self._save_evaluations(evaluations)
+            self._save_evaluations(evaluations, name=name)
 
         pbar.close()
         return evaluations
 
-    def _evaluate_no_tf(self, model=None, dataset=None, metrics=None):
+    def _evaluate_no_tf(self, model=None, dataset=None, metrics=None, name=None):
         # Check for correct types
         assert issubclass(model, Model)
         assert issubclass(dataset, Dataset)
@@ -293,7 +293,7 @@ class Evaluator(object):
             self.logger.info(
                 'Saving results',
                 extra={'phase': 'saving'})
-            self._save_evaluations(evaluations)
+            self._save_evaluations(evaluations, name=name)
 
         return evaluations
 
