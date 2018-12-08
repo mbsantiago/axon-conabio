@@ -108,12 +108,12 @@ def evaluate(name, path, ckpt):
         msg += ' axon project!'
         raise click.UsageError(msg)
 
+    print('project', project)
+
     # Get configuration
-    config_path = None
-    if project is not None:
-        config_path = os.path.join(
-                project, '.project', 'axon_config.ini')
-        config = get_config(path=config_path)
+    config_path = os.path.join(
+        project, '.project', 'axon_config.ini')
+    config = get_config(path=config_path)
 
     # If name was given
     if name is not None:
