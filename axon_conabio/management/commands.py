@@ -96,7 +96,7 @@ def list(type, path):
 def evaluate(name, path, ckpt):
     # Get current project
     if name is not None:
-        project = get_base_project('.')
+        project = get_base_project(os.path.abspath('.'))
     elif path is not None:
         project = get_base_project(path)
     else:
