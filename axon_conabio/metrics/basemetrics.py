@@ -76,6 +76,10 @@ class MetricBundle(Metric):
 class ThresholdedMetric(Metric):
     thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
+    @abstractmethod
+    def process_threshold(self, prediction, threshold):
+        pass
+
     def __call__(self, prediction, label):
         results = defaultdict(dict)
 
@@ -83,7 +87,8 @@ class ThresholdedMetric(Metric):
         proc_label = self.label_preprocess(label)
 
         for threshold in self.thresholds:
-            thresholded_prediction = proc_prediction >= threshold
+            thresholded_prediction = self.process_threshold(
+                proc_prediction, threshold)
             evaluation = super(ThresholdedMetric, self).__call__(
                 thresholded_prediction,
                 proc_label,
