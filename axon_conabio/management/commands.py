@@ -108,8 +108,6 @@ def evaluate(name, path, ckpt):
         msg += ' axon project!'
         raise click.UsageError(msg)
 
-    print('project', project)
-
     # Get configuration
     config_path = os.path.join(
         project, '.project', 'axon_config.ini')
@@ -118,6 +116,8 @@ def evaluate(name, path, ckpt):
     # If name was given
     if name is not None:
         path = get_model_path(name, project, config)
+
+    print('path', path)
 
     if not os.path.exists(path):
         msg = 'No model with name {name} was found. Available models: {list}'
