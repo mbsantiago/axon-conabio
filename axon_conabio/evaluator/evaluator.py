@@ -127,11 +127,11 @@ class Evaluator(object):
                     msg = 'Declared dataset input structures does not '
                     msg += 'coincided with test iterator outputs.'
                     raise KeyError(msg)
-                feed_dict[value] = [input_value]
+                feed_dict[value] = input_value
 
         # Case for single input
         else:
-            feed_dict[input_tensors] = [inputs]
+            feed_dict[input_tensors] = inputs
 
         return feed_dict
 
