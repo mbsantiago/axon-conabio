@@ -1,0 +1,52 @@
+optimizer:
+  name: Adam
+
+summaries:
+  validate: true
+  tensorboard_summaries: true
+  variable_summaries: false
+  gradient_summaries: true
+  model_summaries: true
+  tensor_summaries: false
+  save_graph: true
+  save_tensors: true
+  tensors_per_batch: 1,
+  train_summaries_frequency: 50
+  validation_summaries_frequency: 200
+  summaries_dir: summaries
+  regularization_summaries: true
+
+tensor_logs:
+  save_tensors: true
+  tensors_dir: summaries/tensors
+  save_tensors_frequency: 100
+  tensor_list: null
+
+logging:
+  logging: true
+  log_to_file: false
+  log_path: training.log
+  verbosity: 3
+
+checkpoints:
+  checkpoints_frequency: 200
+  tensorflow_checkpoints: true
+  numpy_checkpoints: false
+  checkpoints_dir: checkpoints
+  tensorflow_checkpoints_dir: checkpoints/tensorflow
+  numpy_checkpoints_dir: checkpoints/numpy
+
+regularization:
+  l1_loss: 0.0
+  l2_loss: 0.0
+  keep_prob: 0.5
+
+architecture:
+  distributed: false
+  distributed_config: cluster_spec.py
+  num_gpus: 1
+
+feed:
+  batch_size: 100
+  epochs: 10000
+  stop_at_step: null

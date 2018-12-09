@@ -1,0 +1,15 @@
+logging:
+  logging: true
+  log_to_file: false
+  log_path: evaluation.log
+  verbosity: 3
+
+evaluations:
+  evaluations_dir: evaluations
+  save_predictions: false
+  predictions_dir: evaluations/predictions
+  save_results: true
+  results_format: json
+
+other:
+  checkpoints_dir: checkpoints
