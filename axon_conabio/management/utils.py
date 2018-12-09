@@ -260,8 +260,8 @@ def get_model_checkpoint(
         raise IOError(msg)
 
     train_config = get_train_config(paths=[
-        os.path.join(project, '.project', 'train.ini'),
-        os.path.join(model_directory, 'train.ini')
+        os.path.join(project, '.project', 'train.yaml'),
+        os.path.join(model_directory, 'train.yaml')
     ])
 
     tf_subdir = train_config.config['checkpoints']['tensorflow_checkpoints_dir']

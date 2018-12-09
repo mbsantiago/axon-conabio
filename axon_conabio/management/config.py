@@ -26,5 +26,5 @@ def get_config(path=None, config=None):
 
 
 def get_project_config(project):
-    project_config = os.path.join(project, '.project', 'axon_config.ini')
+    project_config = os.path.join(project, '.project', 'axon_config.yaml')
     return get_config(path=project_config)

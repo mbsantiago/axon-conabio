@@ -6,7 +6,7 @@ from ..utils import memoized, parse_configs
 
 DEFAULT_CONFIG_PATH = os.path.join(
     os.path.abspath(os.path.dirname(__file__)),
-    'default_config.ini'
+    'default_config.yaml'
 )
 
 OPTIMIZERS = {
