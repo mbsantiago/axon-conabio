@@ -241,5 +241,4 @@ def parse_configs(paths):
         except IOError as exc:
             logger.info(str(exc))
 
-    print(configuration)
     return configuration
