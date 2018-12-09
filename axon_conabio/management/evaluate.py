@@ -1,9 +1,9 @@
 import os
-import configparser
 
 from .utils import load_object
 from ..evaluator.evaluator_config import get_config
 from ..evaluator.evaluator import Evaluator
+from ..utils import parse_configs
 
 
 def evaluate(path, config, project, ckpt):
@@ -16,8 +16,7 @@ def evaluate(path, config, project, ckpt):
 
     # Read model, database and loss specifications
     model_file = config['configurations']['model_specs']
-    model_config = configparser.ConfigParser()
-    model_config.read([
+    model_config = parse_configs([
         os.path.join(project, '.project', model_file),
         os.path.join(path, model_file)])
 
@@ -35,21 +34,19 @@ def evaluate(path, config, project, ckpt):
 
     else:
         metrics = [
-            model_config['evaluation'][dataset.replace('_', ' ')]['metric_list']
+            model_config['evaluation'][dataset]['metric_list']
             for dataset in datasets_name]
 
     evaluator = Evaluator(eval_config, path, ckpt=ckpt)
     for dataset, metric_list in zip(datasets_name, metrics):
 
-        dataset_name = dataset.replace('_', ' ')
-
         try:
-            name = model_config['evaluation'][dataset_name]['name']
+            name = model_config['evaluation'][dataset]['name']
         except:
             name = dataset
 
         try:
-            dataset_kwargs = model_config['evaluation'][dataset_name]['dataset kwargs']
+            dataset_kwargs = model_config['evaluation'][dataset]['dataset_kwargs']
         except:
             dataset_kwargs = None
 
