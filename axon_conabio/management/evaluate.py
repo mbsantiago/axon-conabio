@@ -41,13 +41,15 @@ def evaluate(path, config, project, ckpt):
     evaluator = Evaluator(eval_config, path, ckpt=ckpt)
     for dataset, metric_list in zip(datasets_name, metrics):
 
+        dataset_name = dataset.replace('_', ' ')
+
         try:
-            name = model_config['evaluation'][dataset]['name']
+            name = model_config['evaluation'][dataset_name]['name']
         except:
             name = dataset
 
         try:
-            dataset_kwargs = model_config['evaluation'][dataset]['kwargs']
+            dataset_kwargs = model_config['evaluation'][dataset_name]['dataset kwargs']
         except:
             dataset_kwargs = None
 

@@ -86,8 +86,8 @@ class Evaluator(object):
 
         self.logger = logger
 
-    def _build_inputs(self, dataset):
-        input_structure = dataset.input_structure
+    def _build_inputs(self, model):
+        input_structure = model.input_structure
 
         def get_dtype(args):
             if len(args) == 1:
@@ -274,7 +274,7 @@ class Evaluator(object):
         # Create input pipeline
         with graph.as_default():
             dataset_instance = dataset()
-            input_tensors = self._build_inputs(dataset)
+            input_tensors = self._build_inputs(model)
 
         prediction_tensor = model_instance.predict(input_tensors)
 
