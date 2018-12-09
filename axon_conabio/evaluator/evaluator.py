@@ -269,14 +269,15 @@ class Evaluator(object):
         graph = tf.Graph()
 
         # Instantiate model with graph
-        model_instance = model(graph=graph)
+        with tf.device('/cpu:0'):
+            model_instance = model(graph=graph)
 
-        # Create input pipeline
-        with graph.as_default():
-            dataset_instance = dataset()
-            input_tensors = self._build_inputs(model)
+            # Create input pipeline
+            with graph.as_default():
+                dataset_instance = dataset()
+                input_tensors = self._build_inputs(model)
 
-        prediction_tensor = model_instance.predict(input_tensors)
+            prediction_tensor = model_instance.predict(input_tensors)
 
         self.logger.info(
             'Starting session and restoring model',
