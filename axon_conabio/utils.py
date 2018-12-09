@@ -230,7 +230,5 @@ def parse_configs(paths):
                     msg = msg.format(path, str(exc))
                     logger.warning(msg)
         except IOError as exc:
-            msg = 'IO error with file {}: {}'
-            msg = msg.format(path, str(exc))
-            logger.warning(msg)
+            logger.info(str(exc))
     return configuration
