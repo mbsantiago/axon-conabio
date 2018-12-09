@@ -32,11 +32,16 @@ def evaluate(path, config, project, ckpt):
         model_config['evaluation']['dataset'].split(',')]
 
     if len(datasets_name) == 1 and 'metric_list' in model_config['evaluation']:
-        metrics = [model_config['evaluation']['metric_list'].split(',')]
+        metrics = [
+            metric.strip() for metric in
+            model_config['evaluation']['metric_list'].split(',')]
 
     else:
         metrics = [
-            model_config['evaluation'][dataset]['metric_list']
+            [
+                metric.strip() for metric in
+                model_config['evaluation'][dataset]['metric_list'].split(',')
+            ]
             for dataset in datasets_name]
 
     evaluator = Evaluator(eval_config, path, ckpt=ckpt)
