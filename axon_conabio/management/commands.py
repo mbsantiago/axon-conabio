@@ -43,7 +43,7 @@ def train(name, path, retrain):
     config_path = None
     if project is not None:
         config_path = os.path.join(
-                project, '.project', 'axon_config.ini')
+                project, '.project', 'axon_config.yaml')
     config = get_config(path=config_path)
 
     # If name was given
@@ -74,7 +74,7 @@ def list(type, path):
 
     project = get_base_project(path)
     config_path = os.path.join(
-            project, '.project', 'axon_config.ini')
+            project, '.project', 'axon_config.yaml')
     config = get_config(path=config_path)
 
     result = get_all_objects(
@@ -110,7 +110,7 @@ def evaluate(name, path, ckpt):
 
     # Get configuration
     config_path = os.path.join(
-        project, '.project', 'axon_config.ini')
+        project, '.project', 'axon_config.yaml')
     config = get_config(path=config_path)
 
     # If name was given

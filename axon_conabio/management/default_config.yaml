@@ -8,6 +8,6 @@ structure:
   preprocessors_dir: preprocessors
 
 configurations:
-  model_specs: specs.ini
-  train_configs: train.ini
-  evaluator_config: evaluation.ini
+  model_specs: specs.yaml
+  train_configs: train.yaml
+  evaluator_config: evaluation.yaml

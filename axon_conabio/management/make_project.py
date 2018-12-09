@@ -32,8 +32,11 @@ def make_project(path, config):
 
     os.makedirs(os.path.join(path, '.project'))
     shutil.copy(
-        os.path.join(CURRENT_DIR, 'default_config.ini'),
-        os.path.join(path, '.project', 'axon_config.ini'))
+        os.path.join(CURRENT_DIR, 'default_config.yaml'),
+        os.path.join(path, '.project', 'axon_config.yaml'))
     shutil.copy(
-        os.path.join(CURRENT_DIR, '../trainer/default_config.ini'),
-        os.path.join(path, '.project', 'train.ini'))
+        os.path.join(CURRENT_DIR, '../trainer/default_config.yaml'),
+        os.path.join(path, '.project', 'train.yaml'))
+    shutil.copy(
+        os.path.join(CURRENT_DIR, '../evaluator/default_config.yaml'),
+        os.path.join(path, '.project', 'evaluation.yaml'))
