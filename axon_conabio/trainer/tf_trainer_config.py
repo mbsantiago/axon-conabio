@@ -1,9 +1,7 @@
 import os
-import configparser
-
 import tensorflow as tf
 
-from ..utils import memoized
+from ..utils import memoized, parse_configs
 
 
 DEFAULT_CONFIG_PATH = os.path.join(
@@ -124,11 +122,11 @@ def get_optimizer(config):
 def get_config(paths=None, config=None):
     if paths is None:
         paths = []
+    paths = [DEFAULT_CONFIG_PATH] + paths
 
-    train_config = configparser.ConfigParser()
-    train_config.read([DEFAULT_CONFIG_PATH] + paths)
+    configuration = parse_configs(paths)
 
     if config is not None:
-        train_config.read_dict(config)
+        configuration.update(config)
 
-    return TrainConfig(train_config)
+    return TrainConfig(configuration)

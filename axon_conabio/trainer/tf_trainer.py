@@ -58,7 +58,7 @@ class TFTrainer(object):
 
         log_config = self.config['logging']
 
-        if not log_config.getboolean('logging'):
+        if not bool(log_config['logging']):
             logger.disable(logging.INFO)
             self.logger = logger
             return None
@@ -66,7 +66,7 @@ class TFTrainer(object):
         log_format = '%(levelname)s: [%(asctime)-15s] [%(phase)s] %(message)s'
         formatter = logging.Formatter(log_format)
 
-        verbosity = log_config.getint('verbosity')
+        verbosity = int(log_config['verbosity'])
         if verbosity == 1:
             level = logging.ERROR
         elif verbosity == 2:
@@ -85,7 +85,7 @@ class TFTrainer(object):
         console_handler.setLevel(level)
         logger.addHandler(console_handler)
 
-        if log_config.getboolean('log_to_file'):
+        if bool(log_config['log_to_file']):
             path = os.path.join(self.path, log_config['log_path'])
             file_handler = logging.FileHandler(path)
             file_handler.setLevel(logging.INFO)
@@ -100,8 +100,8 @@ class TFTrainer(object):
 
     def _get_regularization_loss(self, model):
         reg_conf = self.config['regularization']
-        l1_loss = reg_conf.getfloat('l1_loss')
-        l2_loss = reg_conf.getfloat('l2_loss')
+        l1_loss = float(reg_conf['l1_loss'])
+        l2_loss = float(reg_conf['l2_loss'])
 
         with model.graph.as_default():
             loss = 0
@@ -131,7 +131,7 @@ class TFTrainer(object):
 
     def _get_train_op_multiple_gpu(self, model, losses, reg_loss):
         architecture_conf = self.config['architecture']
-        num_gpus = architecture_conf.getint('num_gpus')
+        num_gpus = int(architecture_conf['num_gpus'])
         assert len(losses) == num_gpus
 
         with model.graph.as_default():
@@ -165,10 +165,10 @@ class TFTrainer(object):
         summary_conf = self.config['summaries']
         summaries = [loss.summary_op(prefix=prefix)]
 
-        model_summs = summary_conf.getboolean('model_summaries')
-        var_summs = summary_conf.getboolean('variable_summaries')
-        grad_summs = summary_conf.getboolean('gradient_summaries')
-        reg_summs = summary_conf.getboolean('regularization_summaries')
+        model_summs = bool(summary_conf['model_summaries'])
+        var_summs = bool(summary_conf['variable_summaries'])
+        grad_summs = bool(summary_conf['gradient_summaries'])
+        reg_summs = bool(summary_conf['regularization_summaries'])
 
         if model_summs:
             model_summ_op = model.get_model_summaries(run_name=prefix)
@@ -227,7 +227,7 @@ class TFTrainer(object):
             directory,
             'step_{}'.format(step))
 
-        num_sample = tensor_conf.getint('tensors_per_batch')
+        num_sample = int(tensor_conf['tensors_per_batch'])
         tensor_samples = {
             key: value[:num_sample]
             for key, value in six.iteritems(tensors)}
@@ -256,11 +256,11 @@ class TFTrainer(object):
             'Building inputs',
             extra={'phase': 'construction'})
 
-        validate = self.config['summaries'].getboolean('validate')
+        validate = bool(self.config['summaries']['validate'])
         with graph.as_default():
             dataset_instance = dataset()
-            batch_size = self.config['feed'].getint('batch_size')
-            epochs = self.config['feed'].getint('epochs')
+            batch_size = int(self.config['feed']['batch_size'])
+            epochs = int(self.config['feed']['epochs'])
             train_input, train_label = dataset_instance.iter_train(
                 batch_size=batch_size,
                 epochs=epochs)
@@ -275,7 +275,7 @@ class TFTrainer(object):
         self.logger.info(
             'Building model and losses',
             extra={'phase': 'construction'})
-        num_gpus = self.config['architecture'].getint('num_gpus')
+        num_gpus = int(self.config['architecture']['num_gpus'])
         train_losses = train_loss.build_model_loss(
             model_instance,
             train_input,
@@ -309,8 +309,8 @@ class TFTrainer(object):
         init_op = model_instance.init_op()
 
         # Create summary operations
-        tensorboard_summaries = (self.config['summaries']
-                                     .getboolean('tensorboard_summaries'))
+        tensorboard_summaries = bool(
+            self.config['summaries']['tensorboard_summaries'])
         if tensorboard_summaries:
             train_summary_op = self._build_summary_op(
                 model_instance,
@@ -324,7 +324,7 @@ class TFTrainer(object):
                 prefix='validation')
 
         # Prepare tensors for saving
-        save_tensors = self.config['tensor_logs'].getboolean('save_tensors')
+        save_tensors = bool(self.config['tensor_logs']['save_tensors'])
         if save_tensors:
             tensor_list = self.config['tensor_logs']['tensor_list'].split(',')
             train_tensors = model_instance.get_tensors(
@@ -404,24 +404,21 @@ class TFTrainer(object):
                 extra={'phase': 'construction'})
 
         log = (
-            self.config['logging'].getboolean('logging')
+            bool(self.config['logging']['logging'])
             or
             tensorboard_summaries
         )
-        npy_ckpts = (self.config['checkpoints']
-                         .getboolean('numpy_checkpoints'))
-        tf_ckpts = (self.config['checkpoints']
-                        .getboolean('tensorflow_checkpoints'))
-        train_sum_freq = (self.config['summaries']
-                              .getint('train_summaries_frequency'))
-        valid_sum_freq = (self.config['summaries']
-                              .getint('validation_summaries_frequency'))
-        save_tensors_freq = (self.config['tensor_logs']
-                                 .getint('save_tensors_frequency'))
-        checkpoints_freq = (self.config['checkpoints']
-                                .getint('checkpoints_frequency'))
-        stop_at_step = (self.config['feed']
-                            .getint('stop_at_step'))
+        npy_ckpts = bool(self.config['checkpoints']['numpy_checkpoints'])
+        tf_ckpts = bool(self.config['checkpoints']['tensorflow_checkpoints'])
+        train_sum_freq = int(
+            self.config['summaries']['train_summaries_frequency'])
+        valid_sum_freq = int(
+            self.config['summaries']['validation_summaries_frequency'])
+        save_tensors_freq = int(
+            self.config['tensor_logs']['save_tensors_frequency'])
+        checkpoints_freq = int(
+            self.config['checkpoints']['checkpoints_frequency'])
+        stop_at_step = int(self.config['feed']['stop_at_step'])
         checkpoints = (npy_ckpts or tf_ckpts)
 
         self.logger.info(

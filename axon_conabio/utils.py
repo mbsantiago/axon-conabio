@@ -2,8 +2,14 @@ from contextlib import contextmanager
 import os
 import collections
 import functools
+import yaml
+import logging
+
 
 import tensorflow as tf
+
+
+logger = logging.getLogger(__name__)
 
 
 TF_DTYPES = {
@@ -210,3 +216,21 @@ class memoized(object):
     def __get__(self, obj, objtype):
         '''Support instance methods.'''
         return functools.partial(self.__call__, obj)
+
+
+def parse_configs(paths):
+    configuration = {}
+    for path in paths:
+        try:
+            with open(path, 'r') as stream:
+                try:
+                    configuration.update(yaml.load(stream))
+                except yaml.YAMLError as exc:
+                    msg = 'Problem parsing YAML file {}: {}'
+                    msg = msg.format(path, str(exc))
+                    logger.warning(msg)
+        except IOError as exc:
+            msg = 'IO error with file {}: {}'
+            msg = msg.format(path, str(exc))
+            logger.warning(msg)
+    return configuration

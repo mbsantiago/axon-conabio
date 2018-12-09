@@ -50,7 +50,7 @@ class Evaluator(object):
         logger = logging.getLogger(__name__)
         log_config = self.config['logging']
 
-        if not log_config.getboolean('logging'):
+        if not bool(log_config['logging']):
             logger.disable(logging.INFO)
             self.logger = logger
             return None
@@ -58,7 +58,7 @@ class Evaluator(object):
         log_format = '%(levelname)s: [%(asctime)-15s] [%(phase)s] %(message)s'
         formatter = logging.Formatter(log_format)
 
-        verbosity = log_config.getint('verbosity')
+        verbosity = int(log_config['verbosity'])
         if verbosity == 1:
             level = logging.ERROR
         elif verbosity == 2:
@@ -77,7 +77,7 @@ class Evaluator(object):
         console_handler.setLevel(level)
         logger.addHandler(console_handler)
 
-        if log_config.getboolean('log_to_file'):
+        if bool(log_config['log_to_file']):
             path = os.path.join(self.path, log_config['log_path'])
             file_handler = logging.FileHandler(path)
             file_handler.setLevel(logging.INFO)
@@ -218,7 +218,7 @@ class Evaluator(object):
 
                 evaluations.append(results)
 
-                if self.config['evaluations'].getboolean('save_predictions'):
+                if bool(self.config['evaluations']['save_predictions']):
                     self._save_prediction(id_, prediction)
 
                 pbar.update(1)
@@ -228,7 +228,7 @@ class Evaluator(object):
                 'Iterations over',
                 extra={'phase': 'evaluations'})
 
-        if self.config['evaluations'].getboolean('save_results'):
+        if bool(self.config['evaluations']['save_results']):
             self.logger.info(
                     'Saving results',
                     extra={'phase': 'saving'})
@@ -304,10 +304,10 @@ class Evaluator(object):
 
             evaluations.append(results)
 
-            if self.config['evaluations'].getboolean('save_predictions'):
+            if bool(self.config['evaluations']['save_predictions']):
                 self._save_prediction(id_, prediction)
 
-        if self.config['evaluations'].getboolean('save_results'):
+        if bool(self.config['evaluations']['save_results']):
             self.logger.info(
                 'Saving results',
                 extra={'phase': 'saving'})

@@ -1,24 +1,28 @@
 import os
-import configparser
 
-from ..utils import memoized
+from ..utils import memoized, parse_configs
 
 
 DEFAULT_CONFIG_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    'default_config.ini')
+    'default_config.yaml')
 
 
 @memoized
-def get_config(path=None):
-    paths = [DEFAULT_CONFIG_PATH]
-    if path is not None:
-        paths.append(path)
+def get_config(path=None, config=None):
+    if path is None:
+        path = []
+    else:
+        path = [path]
 
-    config = configparser.ConfigParser()
-    config.read(paths)
+    paths = [DEFAULT_CONFIG_PATH] + path
 
-    return config
+    configuration = parse_configs(paths)
+
+    if config is not None:
+        configuration.update(config)
+
+    return configuration
 
 
 def get_project_config(project):

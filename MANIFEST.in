@@ -1,3 +1,6 @@
 include axon_conabio/trainer/default_config.ini
 include axon_conabio/evaluator/default_config.ini
 include axon_conabio/management/default_config.ini
+include axon_conabio/trainer/default_config.yaml
+include axon_conabio/evaluator/default_config.yaml
+include axon_conabio/management/default_config.yaml
