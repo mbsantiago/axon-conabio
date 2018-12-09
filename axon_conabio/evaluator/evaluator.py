@@ -177,15 +177,15 @@ class Evaluator(object):
         graph = tf.Graph()
 
         # Instantiate model with graph
-        model_instance = model(graph=graph, **model_kwargs)
+        with tf.device('/cpu:0'):
+            model_instance = model(graph=graph, **model_kwargs)
 
-        # Create input pipeline
-        with graph.as_default():
-            dataset_instance = dataset(**dataset_kwargs)
-            ids, inputs, labels = dataset_instance.iter_test()
+            # Create input pipeline
+            with graph.as_default():
+                dataset_instance = dataset(**dataset_kwargs)
+                ids, inputs, labels = dataset_instance.iter_test()
 
-        # Add an extra dimension for batch
-        prediction_tensor = model_instance.predict(tf.expand_dims(inputs, 0))
+            prediction_tensor = model_instance.predict(inputs)
 
         self.logger.info(
                 'Starting session and restoring model',
