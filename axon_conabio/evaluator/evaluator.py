@@ -339,7 +339,10 @@ class Evaluator(object):
         # Check if dataset is a tf dataset
         with tf.Graph().as_default():
             dataset_instance = dataset()
-            is_tf = isinstance(dataset_instance.iter_test()[0], tf.Tensor)
+            try:
+                is_tf = isinstance(dataset_instance.iter_test()[0], tf.Tensor)
+            except TypeError:
+                is_tf = False
 
         if is_tf:
             self.logger.info(
