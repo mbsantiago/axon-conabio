@@ -90,14 +90,23 @@ class Evaluator(object):
         input_structure = model.input_structure
 
         def get_dtype(args):
+            if not isinstance(args, tuple):
+                return tf.float32
+
             if len(args) == 1:
                 return tf.float32
             else:
                 dtype_string = args[1]
                 return TF_DTYPES[dtype_string]
 
+        def get_shape(args):
+            if not isinstance(args, tuple):
+                return args
+            else:
+                return args[0]
+
         inputs = {
-            key: tf.placeholder(get_dtype(value), shape=([1] + value[0]))
+            key: tf.placeholder(get_dtype(value), shape=get_shape(value))
             for key, value in six.iteritems(input_structure)
         }
 
