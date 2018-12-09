@@ -233,12 +233,13 @@ def parse_configs(paths):
         try:
             with open(path, 'r') as stream:
                 try:
-                    dict_merge(yaml.load(stream), configuration)
+                    dict_merge(configuration, yaml.load(stream))
                 except yaml.YAMLError as exc:
                     msg = 'Problem parsing YAML file {}: {}'
                     msg = msg.format(path, str(exc))
                     logger.warning(msg)
         except IOError as exc:
-            logger.warning(str(exc))
+            logger.info(str(exc))
 
+    print(configuration)
     return configuration
