@@ -35,7 +35,7 @@ def evaluate(path, config, project, ckpt):
 
     else:
         metrics = [
-            model_config['evaluation'][dataset]['metric_list']
+            model_config['evaluation'][dataset.replace('_', ' ')]['metric_list']
             for dataset in datasets_name]
 
     evaluator = Evaluator(eval_config, path, ckpt=ckpt)
