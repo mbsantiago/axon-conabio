@@ -140,6 +140,15 @@ def summary_aggregation(summaries, prefix=None):
     return summary_op
 
 
+def dict_merge(dct, merge_dct):
+    for k, v in merge_dct.iteritems():
+        if (k in dct and isinstance(dct[k], dict)
+                and isinstance(merge_dct[k], collections.Mapping)):
+            dict_merge(dct[k], merge_dct[k])
+        else:
+            dct[k] = merge_dct[k]
+
+
 def get_checkpoints(
         summary_dir,
         tf_subdir='tensorflow',
@@ -224,7 +233,7 @@ def parse_configs(paths):
         try:
             with open(path, 'r') as stream:
                 try:
-                    configuration.update(yaml.load(stream))
+                    dict_merge(yaml.load(stream), configuration)
                 except yaml.YAMLError as exc:
                     msg = 'Problem parsing YAML file {}: {}'
                     msg = msg.format(path, str(exc))
@@ -232,5 +241,4 @@ def parse_configs(paths):
         except IOError as exc:
             logger.warning(str(exc))
 
-    print(configuration)
     return configuration
