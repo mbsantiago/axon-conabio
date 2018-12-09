@@ -177,20 +177,20 @@ class Evaluator(object):
         graph = tf.Graph()
 
         # Instantiate model with graph
-        with tf.device('/cpu:0'):
-            model_instance = model(graph=graph, **model_kwargs)
+        model_instance = model(graph=graph, **model_kwargs)
 
-            # Create input pipeline
-            with graph.as_default():
-                dataset_instance = dataset(**dataset_kwargs)
-                ids, inputs, labels = dataset_instance.iter_test()
+        # Create input pipeline
+        with graph.as_default():
+            dataset_instance = dataset(**dataset_kwargs)
+            ids, inputs, labels = dataset_instance.iter_test()
 
-            prediction_tensor = model_instance.predict(inputs)
+        prediction_tensor = model_instance.predict(inputs)
 
         self.logger.info(
-                'Starting session and restoring model',
-                extra={'phase': 'construction'})
-        sess = tf.Session(graph=graph)
+            'Starting session and restoring model',
+            extra={'phase': 'construction'})
+        config = tf.ConfigProto(device_count={'GPU': 0})
+        sess = tf.Session(graph=graph, config=config)
         with graph.as_default():
             tables_init = tf.tables_initializer()
             local_init = tf.local_variables_initializer()
@@ -200,8 +200,8 @@ class Evaluator(object):
             sess, path=self._ckpt_path, mode=self._ckpt_type)
 
         self.logger.info(
-                'Starting evaluation',
-                extra={'phase': 'construction'})
+            'Starting evaluation',
+            extra={'phase': 'construction'})
         evaluations = []
         pbar = tqdm()
         try:
@@ -212,7 +212,7 @@ class Evaluator(object):
                 # Remove extra dimension from batch=1
                 prediction = prediction[0]
 
-                results = {'id': id_}
+                results = {'id': id_[0]}
                 for metric in metrics:
                     results.update(metric(prediction, label))
 
@@ -269,20 +269,20 @@ class Evaluator(object):
         graph = tf.Graph()
 
         # Instantiate model with graph
-        with tf.device('/cpu:0'):
-            model_instance = model(graph=graph)
+        model_instance = model(graph=graph)
 
-            # Create input pipeline
-            with graph.as_default():
-                dataset_instance = dataset()
-                input_tensors = self._build_inputs(model)
+        # Create input pipeline
+        with graph.as_default():
+            dataset_instance = dataset()
+            input_tensors = self._build_inputs(model)
 
-            prediction_tensor = model_instance.predict(input_tensors)
+        prediction_tensor = model_instance.predict(input_tensors)
 
         self.logger.info(
             'Starting session and restoring model',
             extra={'phase': 'construction'})
-        sess = tf.Session(graph=graph)
+        config = tf.ConfigProto(device_count={'GPU': 0})
+        sess = tf.Session(graph=graph, config=config)
         with graph.as_default():
             tables_init = tf.tables_initializer()
             local_init = tf.local_variables_initializer()
