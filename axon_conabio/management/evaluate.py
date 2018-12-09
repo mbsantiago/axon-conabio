@@ -27,7 +27,9 @@ def evaluate(path, config, project, ckpt):
         project=project,
         config=config)
 
-    datasets_name = model_config['evaluation']['dataset'].split(',')
+    datasets_name = [
+        dataset_name.strip() for dataset_name in
+        model_config['evaluation']['dataset'].split(',')]
 
     if len(datasets_name) == 1 and 'metric_list' in model_config['evaluation']:
         metrics = [model_config['evaluation']['metric_list'].split(',')]
