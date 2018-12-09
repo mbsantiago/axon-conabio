@@ -145,7 +145,14 @@ class Evaluator(object):
                 for row in evaluations:
                     writer.writerow(row)
 
-    def _evaluate_tf(self, model=None, dataset=None, metrics=None, name=None):
+    def _evaluate_tf(
+            self,
+            model=None,
+            model_kwargs=None,
+            dataset=None,
+            dataset_kwargs=None,
+            metrics=None,
+            name=None):
         # Check for correct types
         assert issubclass(model, Model)
         assert issubclass(dataset, Dataset)
@@ -153,6 +160,12 @@ class Evaluator(object):
 
         for metric in metrics:
             assert issubclass(metric, Metric)
+
+        if model_kwargs is None:
+            model_kwargs = {}
+
+        if dataset_kwargs is None:
+            dataset_kwargs = {}
 
         # Instantiate metrics
         metrics = [metric() for metric in metrics]
@@ -164,11 +177,11 @@ class Evaluator(object):
         graph = tf.Graph()
 
         # Instantiate model with graph
-        model_instance = model(graph=graph)
+        model_instance = model(graph=graph, **model_kwargs)
 
         # Create input pipeline
         with graph.as_default():
-            dataset_instance = dataset()
+            dataset_instance = dataset(**dataset_kwargs)
             ids, inputs, labels = dataset_instance.iter_test()
 
         # Add an extra dimension for batch
@@ -224,7 +237,14 @@ class Evaluator(object):
         pbar.close()
         return evaluations
 
-    def _evaluate_no_tf(self, model=None, dataset=None, metrics=None, name=None):
+    def _evaluate_no_tf(
+            self,
+            model=None,
+            dataset=None,
+            metrics=None,
+            dataset_kwargs=None,
+            model_kwargs=None,
+            name=None):
         # Check for correct types
         assert issubclass(model, Model)
         assert issubclass(dataset, Dataset)
@@ -232,6 +252,12 @@ class Evaluator(object):
 
         for metric in metrics:
             assert issubclass(metric, Metric)
+
+        if dataset_kwargs is None:
+            dataset_kwargs = {}
+
+        if model_kwargs is None:
+            model_kwargs = {}
 
         # Instantiate metrics
         metrics = [metric() for metric in metrics]
@@ -289,7 +315,13 @@ class Evaluator(object):
 
         return evaluations
 
-    def evaluate(self, model=None, dataset=None, metrics=None, name=None):
+    def evaluate(
+            self,
+            model=None,
+            dataset=None,
+            metrics=None,
+            name=None,
+            dataset_kwargs=None):
         fmt = self.config['evaluations']['results_format']
         filepath = os.path.join(
             self.evaluations_dir,
@@ -313,12 +345,20 @@ class Evaluator(object):
                 'Tensorflow dataset detected.',
                 extra={'phase': 'construction'})
             evaluations = self._evaluate_tf(
-                model=model, dataset=dataset, metrics=metrics, name=name)
+                model=model,
+                dataset=dataset,
+                metrics=metrics,
+                name=name,
+                dataset_kwargs=dataset_kwargs)
         else:
             self.logger.info(
                 'Iterable dataset detected.',
                 extra={'phase': 'construction'})
             evaluations = self._evaluate_no_tf(
-                model=model, dataset=dataset, metrics=metrics, name=name)
+                model=model,
+                dataset=dataset,
+                metrics=metrics,
+                name=name,
+                dataset_kwargs=dataset_kwargs)
 
         return evaluations

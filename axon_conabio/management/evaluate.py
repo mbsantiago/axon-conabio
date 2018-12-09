@@ -46,6 +46,11 @@ def evaluate(path, config, project, ckpt):
         except:
             name = dataset
 
+        try:
+            dataset_kwargs = model_config['evaluation'][dataset]['kwargs']
+        except:
+            dataset_kwargs = None
+
         dataset_klass = load_object(
             dataset,
             'dataset',
@@ -64,4 +69,5 @@ def evaluate(path, config, project, ckpt):
             model=model_klass,
             dataset=dataset_klass,
             metrics=metrics,
-            name=name)
+            name=name,
+            dataset_kwargs=dataset_kwargs)

@@ -13,13 +13,6 @@ class Metric(object):
     def name(self):
         pass
 
-    def __init__(self):
-        self._validate()
-
-    def _validate(self):
-        if (not isinstance(self.name, str) or len(self.name) == 0):
-            raise ValueError('Please name this metric.')
-
     def label_preprocess(self, label):
         return label
 
@@ -60,10 +53,6 @@ class MetricBundle(Metric):
     @abstractmethod
     def names(self):
         pass
-
-    def _validate(self):
-        if not isinstance(self.names, (list, tuple)):
-            raise ValueError('Metric bundle names not defined.')
 
     def evaluation_postprocess(self, results):
         dictionary_results = {
