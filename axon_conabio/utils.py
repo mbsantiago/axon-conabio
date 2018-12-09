@@ -8,7 +8,7 @@ import logging
 
 import tensorflow as tf
 
-
+logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 
