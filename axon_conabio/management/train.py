@@ -24,6 +24,10 @@ def train(path, config, project, retrain=False):
     dataset_name = model_config['training']['dataset'].split(':')[0]
     loss_name = model_config['training']['loss'].split(':')[0]
 
+    model_kwargs = model_config['model'].get('model_kwargs', None)
+    dataset_kwargs = model_config['training'].get('dataset_kwargs', None)
+    loss_kwargs = model_config['training'].get('loss_kwargs', None)
+
     # Read classes
     model_klass = load_object(
         architecture_name,
@@ -48,4 +52,7 @@ def train(path, config, project, retrain=False):
     trainer.train(
         model=model_klass,
         dataset=dataset_klass,
-        loss=loss_klass)
+        loss=loss_klass,
+        model_kwargs=model_kwargs,
+        dataset_kwargs=dataset_kwargs,
+        loss_kwargs=loss_kwargs)

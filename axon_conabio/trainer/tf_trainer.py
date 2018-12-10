@@ -233,11 +233,27 @@ class TFTrainer(object):
             for key, value in six.iteritems(tensors)}
         np.savez(path, **tensor_samples)
 
-    def train(self, model=None, loss=None, dataset=None):
+    def train(
+            self,
+            model=None,
+            loss=None,
+            dataset=None,
+            model_kwargs=None,
+            loss_kwargs=None,
+            dataset_kwargs=None):
         # Check if objects are elements of the corresponding classes
         assert issubclass(model, TFModel)
         assert issubclass(loss, Loss)
         assert issubclass(dataset, Dataset)
+
+        if model_kwargs is None:
+            model_kwargs = {}
+
+        if loss_kwargs is None:
+            loss_kwargs = {}
+
+        if dataset_kwargs is None:
+            dataset_kwargs = {}
 
         # Configure logging
         tf.logging.set_verbosity(tf.logging.WARN)
@@ -247,9 +263,12 @@ class TFTrainer(object):
 
         # Build instances of models and losses
         keep_prob = float(self.config['regularization']['keep_prob'])
-        model_instance = model(graph=graph, keep_prob=keep_prob)
-        train_loss = loss(graph=graph)
-        validation_loss = loss(graph=graph)
+        model_instance = model(
+            graph=graph,
+            keep_prob=keep_prob,
+            **model_kwargs)
+        train_loss = loss(graph=graph, **loss_kwargs)
+        validation_loss = loss(graph=graph, **loss_kwargs)
 
         # Train input, loss and train_op construction
         self.logger.info(
@@ -258,7 +277,7 @@ class TFTrainer(object):
 
         validate = bool(self.config['summaries']['validate'])
         with graph.as_default():
-            dataset_instance = dataset()
+            dataset_instance = dataset(**dataset_kwargs)
             batch_size = int(self.config['feed']['batch_size'])
             epochs = int(self.config['feed']['epochs'])
             train_input, train_label = dataset_instance.iter_train(
