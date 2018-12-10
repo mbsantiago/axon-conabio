@@ -1,11 +1,10 @@
 import os
 import importlib
 import sys
-import configparser
 from contextlib import contextmanager
 
 from .config import get_project_config
-from ..utils import get_checkpoints, memoized
+from ..utils import get_checkpoints, memoized, parse_configs
 from ..trainer.tf_trainer_config import get_config as get_train_config
 
 # Classes
@@ -117,8 +116,7 @@ def load_model(name=None, path=None, ckpt=None):
             ' '.join(list_models()))
         raise IOError(msg)
 
-    model_config = configparser.ConfigParser()
-    model_config.read([
+    model_config = parse_configs([
         os.path.join(project, '.project', model_file),
         os.path.join(path, model_file)])
 
