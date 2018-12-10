@@ -190,6 +190,7 @@ class Evaluator(object):
 
         # Create input pipeline
         with graph.as_default():
+            print('dataset {} kwargs: {}'.format(dataset.name, dataset_kwargs))
             dataset_instance = dataset(**dataset_kwargs)
             ids, inputs, labels = dataset_instance.iter_test()
 
@@ -278,11 +279,12 @@ class Evaluator(object):
         graph = tf.Graph()
 
         # Instantiate model with graph
-        model_instance = model(graph=graph)
+        model_instance = model(graph=graph, **model_kwargs)
 
         # Create input pipeline
         with graph.as_default():
-            dataset_instance = dataset()
+            print('dataset {} kwargs: {}'.format(dataset.name, dataset_kwargs))
+            dataset_instance = dataset(**dataset_kwargs)
             input_tensors = self._build_inputs(model)
 
         prediction_tensor = model_instance.predict(input_tensors)
