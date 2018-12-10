@@ -190,7 +190,6 @@ class Evaluator(object):
 
         # Create input pipeline
         with graph.as_default():
-            print('dataset {} kwargs: {}'.format(dataset.name, dataset_kwargs))
             dataset_instance = dataset(**dataset_kwargs)
             ids, inputs, labels = dataset_instance.iter_test()
 
@@ -283,7 +282,6 @@ class Evaluator(object):
 
         # Create input pipeline
         with graph.as_default():
-            print('dataset {} kwargs: {}'.format(dataset.name, dataset_kwargs))
             dataset_instance = dataset(**dataset_kwargs)
             input_tensors = self._build_inputs(model)
 
