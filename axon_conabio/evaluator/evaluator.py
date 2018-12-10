@@ -305,17 +305,23 @@ class Evaluator(object):
             extra={'phase': 'construction'})
         evaluations = []
         for id_, inputs, label in tqdm(dataset_instance.iter_test()):
-            feed_dict = self._make_feed_dict(input_tensors, inputs)
-            prediction = sess.run(prediction_tensor, feed_dict=feed_dict)
+            try:
+                feed_dict = self._make_feed_dict(input_tensors, inputs)
+                prediction = sess.run(prediction_tensor, feed_dict=feed_dict)
 
-            results = {'id': id_}
-            for metric in metrics:
-                results.update(metric(prediction, label))
+                results = {'id': id_}
+                for metric in metrics:
+                    results.update(metric(prediction, label))
 
-            evaluations.append(results)
+                evaluations.append(results)
 
-            if bool(self.config['evaluations']['save_predictions']):
-                self._save_prediction(id_, prediction)
+                if bool(self.config['evaluations']['save_predictions']):
+                    self._save_prediction(id_, prediction)
+
+            except Exception as exc:
+                self.logger.warning(
+                    str(exc),
+                    extra={'phase': 'evaluation'})
 
         if bool(self.config['evaluations']['save_results']):
             self.logger.info(
