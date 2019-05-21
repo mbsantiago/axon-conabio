@@ -21,7 +21,7 @@ def evaluate(path, config, project, ckpt):
         os.path.join(path, model_file)])
 
     model_name = model_config['model']['architecture']
-    model_klass = load_object(
+    model_class = load_object(
         model_name,
         'architecture',
         project=project,
@@ -44,7 +44,6 @@ def evaluate(path, config, project, ckpt):
             ]
             for dataset in datasets_name]
 
-    evaluator = Evaluator(eval_config, path, ckpt=ckpt)
     for dataset, metric_list in zip(datasets_name, metrics):
 
         try:
@@ -57,11 +56,14 @@ def evaluate(path, config, project, ckpt):
         except:
             dataset_kwargs = None
 
-        dataset_klass = load_object(
+        dataset_class = load_object(
             dataset,
             'dataset',
             project=project,
             config=config)
+
+        evaluator_class = Evaluator.get_evaluator(dataset_class)
+        evaluator = evaluator_class(eval_config, path, ckpt=ckpt)
 
         metrics = [
             load_object(
@@ -72,8 +74,8 @@ def evaluate(path, config, project, ckpt):
             for metric in metric_list]
 
         evaluator.evaluate(
-            model=model_klass,
-            dataset=dataset_klass,
+            model=model_class,
+            dataset=dataset_class,
             metrics=metrics,
             name=name,
             dataset_kwargs=dataset_kwargs)
