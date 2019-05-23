@@ -7,7 +7,6 @@ import six
 
 @six.add_metaclass(ABCMeta)
 class Metric(object):
-
     @property
     @abstractmethod
     def name(self):
@@ -26,24 +25,11 @@ class Metric(object):
     def evaluate(self, prediction, label):
         pass
 
-    def __call__(
-            self,
-            prediction,
-            label,
-            with_prediction_preprocess=True,
-            with_label_preprocess=True,
-            with_evaluation_postprocess=True):
-        if with_prediction_preprocess:
-            prediction = self.prediction_preprocess(prediction)
-
-        if with_label_preprocess:
-            label = self.label_preprocess(label)
-
+    def __call__(self, prediction, label):
+        prediction = self.prediction_preprocess(prediction)
+        label = self.label_preprocess(label)
         evaluation = self.evaluate(prediction, label)
-
-        if with_evaluation_postprocess:
-            evaluation = self.evaluation_postprocess(evaluation)
-
+        evaluation = self.evaluation_postprocess(evaluation)
         return evaluation
 
 
@@ -69,6 +55,10 @@ class ThresholdedMetric(Metric):
     def process_threshold(self, prediction, threshold):
         pass
 
+    @staticmethod
+    def get_threshold_key(key, threshold):
+        return '{}_@_{}'.format(key, threshold)
+
     def __call__(self, prediction, label):
         results = defaultdict(dict)
 
@@ -78,13 +68,12 @@ class ThresholdedMetric(Metric):
         for threshold in self.thresholds:
             thresholded_prediction = self.process_threshold(
                 proc_prediction, threshold)
-            evaluation = super(ThresholdedMetric, self).__call__(
-                thresholded_prediction,
-                proc_label,
-                with_label_preprocess=False,
-                with_prediction_preprocess=False)
+
+            evaluation = self.evaluate(thresholded_prediction, proc_label)
+            evaluation = self.evaluation_postprocess(evaluation)
 
             for key in evaluation:
-                results[key][threshold] = evaluation[key]
+                result_key = self.get_threshold_key(key, threshold)
+                results[result_key] = evaluation[key]
 
         return dict(results)

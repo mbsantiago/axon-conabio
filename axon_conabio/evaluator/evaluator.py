@@ -1,10 +1,7 @@
 import os
-import sys
-import logging
-import json
-import csv
-
+from abc import abstractmethod
 import six
+
 from tqdm import tqdm
 import tensorflow as tf
 
@@ -34,16 +31,16 @@ class Evaluator(object):
 
         if is_tf:
             return TFEvaluator
-        else:
-            return FeedDictEvaluator
 
-    def __init__(self, config, path):
+        return FeedDictEvaluator
+
+    def __init__(self, config, path, ckpt=None):
         self.config = config
         self.path = path
 
         self.configure_logger()
-        self.configure_checkpoints()
-        self.configure_evaluations_directory()
+        self.configure_checkpoints(path, ckpt)
+        self.configure_evaluations_directory(path)
 
     def evaluate(
             self,
@@ -84,11 +81,11 @@ class Evaluator(object):
         self.logger.info(
             'Starting session and restoring model',
             extra={'phase': 'construction'})
-        sess = self.start_session(graph, config, model_instance)
+        sess = self.start_session(graph, self.config, model_instance)
 
         self.logger.info(
-                'Starting evaluation',
-                extra={'phase': 'construction'})
+            'Starting evaluation',
+            extra={'phase': 'construction'})
         evaluations = []
 
         pbar = tqdm()
@@ -99,7 +96,7 @@ class Evaluator(object):
                     prediction_tensor,
                     iterator,
                     tensors)
-                results = self.get_metric_results(prediction, label)
+                results = self.get_metric_results(prediction, label, metrics)
 
                 evaluations.append(results)
 
@@ -108,7 +105,7 @@ class Evaluator(object):
 
                 pbar.update(1)
 
-        except self.stopping_errrors:
+        except self.stopping_errors:
             self.logger.info(
                 'Evaluation over',
                 extra={'phase': 'evaluations'})
@@ -150,7 +147,7 @@ class Evaluator(object):
 
         return sess
 
-    def get_metric_results(self, prediction, label):
+    def get_metric_results(self, prediction, label, metrics):
         # Remove extra dimension from batch=1
         prediction = prediction[0]
 
@@ -165,14 +162,14 @@ class Evaluator(object):
     def get_object_metadata(self, label):
         return {'id': label['id']}
 
-    def configure_checkpoints(self):
+    def configure_checkpoints(self, path, ckpt):
         ckpt_dir = self.config['other']['checkpoints_dir']
         self.checkpoints_dir = os.path.join(path, ckpt_dir)
 
         # Check if model checkpoint exists
         try:
             ckpt_type, ckpt_path, ckpt_step = get_model_checkpoint(
-                    os.path.basename(path), ckpt=ckpt)
+                os.path.basename(path), ckpt=ckpt)
 
             self._ckpt_type = ckpt_type
             self._ckpt_path = ckpt_path
@@ -183,7 +180,7 @@ class Evaluator(object):
                 'No checkpoint was found',
                 extra={'phase': 'construction'})
 
-    def configure_evaluations_directory(self):
+    def configure_evaluations_directory(self, path):
         evals_dir = self.config['evaluations']['evaluations_dir']
         self.evaluations_dir = os.path.join(path, evals_dir)
 
@@ -203,15 +200,15 @@ class Evaluator(object):
             'evaluation_{}_step_{}'.format(name, self._ckpt_step))
 
         file_format = self.config['evaluations']['results_format']
-        writer = FileWriter.get_writer(file_format)
+        writer = FileWriter.get_writer(path, file_format)
 
         writer.save(path, evaluations)
 
     def check_if_evaluation_file_exists(self, name):
         fmt = self.config['evaluations']['results_format']
         filepath = os.path.join(
-                self.evaluations_dir,
-                'evaluation_{}_step_{}.{}'.format(name, self._ckpt_step, fmt))
+            self.evaluations_dir,
+            'evaluation_{}_step_{}.{}'.format(name, self._ckpt_step, fmt))
 
         if os.path.exists(filepath):
             msg = 'An evaluation file at step {} already exists. Skipping.'
@@ -219,7 +216,8 @@ class Evaluator(object):
             self.logger.warning(msg, extra={'phase': 'evaluation'})
             raise EvaluationError(msg)
 
-    def check_evaluation_inputs(self, model, dataset, metrics):
+    @staticmethod
+    def check_evaluation_inputs(model, dataset, metrics):
         assert issubclass(dataset, Dataset)
         assert issubclass(model, Model)
         assert isinstance(metrics, (list, tuple))
@@ -233,8 +231,8 @@ class TFEvaluator(Evaluator):
         tf.errors.OutOfRangeError,
     )
 
-    def create_prediction_tensor(self, model_instance, tensors)
-        inputs, labels = tensors
+    def create_prediction_tensor(self, model_instance, tensors):
+        inputs, _ = tensors
         return model_instance.predict(inputs)
 
     def create_input_pipeline(self, graph, model, dataset, dataset_kwargs):
@@ -255,7 +253,7 @@ class FeedDictEvaluator(Evaluator):
         IndexError,
     )
 
-    def create_prediction_tensor(self, model_instance, tensors)
+    def create_prediction_tensor(self, model_instance, tensors):
         return model_instance.predict(tensors)
 
     def create_input_pipeline(self, graph, model, dataset, dataset_kwargs):
@@ -310,9 +308,9 @@ def check_for_tf_dataset(dataset):
     with tf.Graph().as_default():
         dataset_instance = dataset()
         try:
-            is_tf = isinstance(dataset_instance.iter_test()[0], tf.Tensor)
+            return isinstance(dataset_instance.iter_test()[0], tf.Tensor)
         except TypeError:
-            is_tf = False
+            return False
 
 
 def get_dtype(args):
@@ -331,28 +329,3 @@ def get_shape(args):
         return args
     else:
         return args[0]
-
-
-def bla():
-    is_tf = check_for_tf_dataset(dataset)
-
-    if is_tf:
-        self.logger.info(
-                'Tensorflow dataset detected.',
-                extra={'phase': 'construction'})
-        return self._evaluate_tf(
-                model=model,
-                dataset=dataset,
-                metrics=metrics,
-                name=name,
-                dataset_kwargs=dataset_kwargs)
-
-    self.logger.info(
-            'Iterable dataset detected.',
-            extra={'phase': 'construction'})
-    return self._evaluate_no_tf(
-            model=model,
-            dataset=dataset,
-            metrics=metrics,
-            name=name,
-            dataset_kwargs=dataset_kwargs)

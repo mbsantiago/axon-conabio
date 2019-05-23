@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 
 from axon_conabio.exceptions import ConfigError
 
@@ -14,6 +15,8 @@ VERBOSITY_LEVELS = {
 
 
 class BaseLogger(object):
+    log_format = LOG_FORMAT
+
     def __init__(self, name, config, path=None):
         self.name = name
         self.config = config
@@ -31,7 +34,7 @@ class BaseLogger(object):
 
         if not bool(log_config['logging']):
             logger.disable(logging.INFO)
-            return None
+            return
 
         console_handler = logging.StreamHandler(sys.stdout)
 
@@ -43,7 +46,9 @@ class BaseLogger(object):
         if bool(log_config['log_to_file']):
             self.add_file_handler(logger)
 
-    def add_file_handler(logger):
+    def add_file_handler(self, logger):
+        log_config = self.config
+
         path = os.path.join(self.path, log_config['log_path'])
         file_handler = logging.FileHandler(path)
 
@@ -53,7 +58,7 @@ class BaseLogger(object):
         logger.addHandler(file_handler)
 
     def get_logger_format(self):
-        return LOG_FORMAT
+        return self.log_format
 
     def set_logger_formatter(self, logger):
         log_format = self.get_logger_format()
@@ -79,4 +84,3 @@ class BaseLogger(object):
                 'Log to file flag was set to true but no path for log file'
                 ' was given.')
             raise ConfigError(msg)
-

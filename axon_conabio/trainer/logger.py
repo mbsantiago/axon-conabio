@@ -1,55 +1,39 @@
 from abc import ABCMeta, abstractmethod
-from functools import partial
 import six
-
-import tensorflow as tf
-
-
-from ..utils import summary_scope, summary_aggregation
 
 
 @six.add_metaclass(ABCMeta)
 class TrainLogger(object):
-    def __init__(self, graph=None):
-        if graph is None:
-            graph = tf.get_default_graph()
-        self.graph = graph
-
-        self.tensors = {}
+    def __init__(self, config, path):
+        self.config = config
+        self.path = path
 
     @abstractmethod
-    def _log(self, model, loss, inputs, labels):
+    def prepare_for_training(self, context):
         pass
 
-    def log(self, model, loss, inputs, labels, run_name=None):
-        summaries = {}
-        self.tensors = {}
+    @abstractmethod
+    def update_training_configurations(self, train_resources, train_outputs):
+        pass
 
-        with summary_scope(summaries):
-            with self.graph.as_default():
-                tmp = model.get_tensor
-                tmp2 = model.get_tensors
+    @abstractmethod
+    def update_validation_configuration(self, validation_resources):
+        pass
 
-                model.get_tensor = partial(
-                    model.get_tensor, run_name=run_name)
-                model.get_tensors = partial(
-                    model.get_tensors, run_name=run_name)
+    @abstractmethod
+    def check_and_log(self, context, step):
+        pass
 
-                self._log(model, loss, inputs, labels)
 
-                model.get_tensor = tmp
-                model.get_tensors = tmp2
+class DummyTrainLogger(TrainLogger):
+    def prepare_for_training(self, context):
+        pass
 
-        summaries = summary_aggregation(summaries)
-        return summaries, self.tensors
+    def update_training_configurations(self, train_resources, train_outputs):
+        pass
 
-    def log_tensor(self, tensor_name, tensor):
-        if tensor_name in self._tmp_tensor_storage:
-            msg = 'Tensor name previously logged: {name}'
-            msg = msg.format(name=tensor_name)
-            raise KeyError(msg)
+    def update_validation_configuration(self, validation_resources):
+        pass
 
-        self._tmp_tensor_storage[tensor_name] = tensor
-
-    def get_extra_summaries(self):
+    def check_and_log(self, context, log):
         pass

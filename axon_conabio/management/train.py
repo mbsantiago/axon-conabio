@@ -48,7 +48,7 @@ def train(path, config, project, retrain=False):
         config=config)
 
     train_config = get_config(paths=paths)
-    trainer = TFTrainer(train_config, path, retrain=retrain)
+    trainer = TFTrainer(train_config, model_config, path, retrain=retrain)
     trainer.train(
         model=model_klass,
         dataset=dataset_klass,

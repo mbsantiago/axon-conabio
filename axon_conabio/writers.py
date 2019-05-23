@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import json
 import csv
 
@@ -14,32 +15,37 @@ class FileWriter(object):
         with open(filename, 'w') as f:
             self.write_data(f, data)
 
-    @abstactmethod
+    @abstractmethod
     def write_data(self, fileobj, data):
         pass
 
     @classmethod
     def get_writer(cls, path, extension):
         if extension == 'json':
-            return JSONWriter(path)
+            return JSONWriter()
 
         if extension == 'csv':
-            return CSVWriter(path)
+            return CSVWriter()
 
         msg = 'Writer not implemented for format %s' % extension
         raise NotImplementedError(msg)
 
 
 class JSONWriter(FileWriter):
-    def save_data(self, fileobj, data):
+    extension = 'json'
+
+    def write_data(self, fileobj, data):
         json.dump(data, fileobj)
 
 
 class CSVWriter(FileWriter):
-    def get_fieldnames(self, data):
+    extension = 'csv'
+
+    @staticmethod
+    def get_fieldnames(data):
         return list(data[0].keys())
 
-    def save_data(self, fileobj, data):
+    def write_data(self, fileobj, data):
         writer = csv.DictWriter(
             fileobj,
             fieldnames=self.get_fieldnames(data))
